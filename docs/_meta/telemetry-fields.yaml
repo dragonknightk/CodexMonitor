@@ -1,0 +1,957 @@
+version: 1
+catalog_id: telemetry-fields-v1
+description: >-
+  经隐私审查的 Codex 监控类型化数据语义允许列表。字段只有通过下方明确的来源映射
+  才会被接纳；解码后的载荷和任意属性映射绝不能跨越领域或持久化边界。
+
+privacy_classifications:
+  - id: operational_metadata
+    description: >-
+      用于解释模型调用、来源状态和本地监控行为的有界技术元数据；其中不含用户编写的内容。
+  - id: pseudonymous_identifier
+    description: >-
+      仅用于关联和去重的不透明本地标识符；它们仍属敏感信息，不得出现在通知或普通日志中。
+  - id: local_sensitive_label
+    description: >-
+      为 Dashboard 按需解析、用户可见的本地标签；禁止持久化，也不得进入通知和诊断信息。
+
+retention_policies:
+  - id: structured-monitoring
+    persisted: true
+    description: >-
+      已存储的监控历史；默认保留 90 天，并遵循配置的 30 天、90 天、365 天或无限期保留策略。
+  - id: source-health-state
+    persisted: true
+    description: >-
+      当前有界的来源健康状态以及安全时间戳和代码；已被取代的状态可以压缩，且不保留原始错误文本。
+  - id: request-memory-only
+    persisted: false
+    description: >-
+      只在当前已认证的本地查询期间保留，并在响应后释放；绝不写入 SQLite、日志、告警或通知。
+
+fields:
+  - id: conversation.id
+    entities:
+      - Conversation
+      - Turn
+      - ModelCall
+      - ModelCallObservation
+    domain_type: ConversationId
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "derived:canonical_conversation_identity"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 将规范会话与轮次和模型调用关联起来。
+    safety_boundary: >-
+      只能生成内部 UUIDv7；不得将其与遥测来源提供的标识符混淆，也不得在系统通知中暴露。
+
+  - id: conversation.source_id
+    entities:
+      - Conversation
+      - ModelCall
+      - ModelCallObservation
+    domain_type: ConversationSourceId
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["conversation.id"]'
+          - 'log_record.attributes["conversation_id"]'
+          - 'log_record.attributes["codex.conversation_id"]'
+          - "log_record.body.response.conversation"
+      - source_id: codex-sessions
+        mappings:
+          - "session.conversation_id"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.conversation_id"
+          - "legacy.codex_conversations.conversation_id"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 将来源观测与规范会话关联起来。
+    safety_boundary: >-
+      只接受来源提供的有界不透明标识符；绝不记录到日志或放入系统通知。
+
+  - id: conversation.thread_id
+    entities:
+      - Conversation
+      - ModelCall
+      - ModelCallObservation
+    domain_type: ThreadSourceId
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["thread.id"]'
+          - 'log_record.attributes["thread_id"]'
+          - 'log_record.attributes["codex.thread_id"]'
+          - 'log_record.attributes["session.id"]'
+          - 'log_record.attributes["session_id"]'
+      - source_id: codex-sessions
+        mappings:
+          - "session.thread_id"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.thread_id"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 在已知时关联备用 Codex 任务标识。
+    safety_boundary: >-
+      将其视为可选的有界不透明标识符，并从日志和通知中省略。
+
+  - id: conversation.first_observed_at
+    entities:
+      - Conversation
+    domain_type: UtcTimestamp
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "derived:min(model_call_observation.observed_at)"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_conversations.first_seen_at"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 显示本地监控首次观测到会话的时间。
+    safety_boundary: 规范化为 UTC，并拒绝无效或无界的时间戳。
+
+  - id: conversation.last_observed_at
+    entities:
+      - Conversation
+    domain_type: UtcTimestamp
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "derived:max(model_call_observation.observed_at)"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_conversations.last_seen_at"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 按本地最近观测到的活动排序会话。
+    safety_boundary: 规范化为 UTC，并拒绝无效或无界的时间戳。
+
+  - id: conversation.resolved_display_name
+    entities:
+      - Conversation
+    domain_type: EphemeralDisplayLabel
+    nullable: true
+    sources:
+      - source_id: local-session-index
+        mappings:
+          - "session_index.thread_name_by_conversation_id"
+          - "session_index.thread_name_by_thread_id"
+    classification: local_sensitive_label
+    persisted: false
+    retention: request-memory-only
+    display_purpose: 在已认证查询期间显示本地会话标签。
+    safety_boundary: >-
+      仅按需解析；绝不将标签复制到 SQLite、日志、告警或通知中。
+
+  - id: turn.id
+    entities:
+      - Turn
+      - ModelCall
+      - ModelCallObservation
+    domain_type: TurnId
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "derived:canonical_turn_identity"
+          - "correlation.proven_turn_id"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 将规范轮次与其会话和模型调用关联起来。
+    safety_boundary: >-
+      仅在轮次关系得到证明后生成内部 UUIDv7；不得替换为来源标识符，也不得仅凭时间推断轮次。
+
+  - id: turn.source_id
+    entities:
+      - Turn
+      - ModelCall
+      - ModelCallObservation
+    domain_type: TurnSourceId
+    nullable: true
+    sources:
+      - source_id: codex-sessions
+        mappings:
+          - "session.turn.id"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 将来源轮次证据与规范轮次关联起来。
+    safety_boundary: >-
+      不存在可靠来源关系时保留未知值；不得仅凭时间虚构来源轮次标识符。
+
+  - id: turn.event_at
+    entities:
+      - Turn
+    domain_type: UtcTimestamp
+    nullable: true
+    sources:
+      - source_id: codex-sessions
+        mappings:
+          - "session.turn.event_at"
+      - source_id: domain-engine
+        mappings:
+          - "correlation.proven_turn_event_at"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 将已证明的轮次放到本地会话时间线上。
+    safety_boundary: 只存储来自已证明轮次证据且经过验证的 UTC 时间戳。
+
+  - id: model_call.id
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: ModelCallId
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "derived:canonical_model_call_identity"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 为调用、告警和去重提供稳定的本地标识。
+    safety_boundary: >-
+      只能根据已注册的来源标识规则生成；绝不从原始用户内容派生。
+
+  - id: model_call.canonical_identity
+    entities:
+      - ModelCall
+    domain_type: SourceEventIdentity
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "derived:canonical_source_event_identity"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 跨观测去重并关联规范模型调用。
+    safety_boundary: >-
+      只接受由允许列表字段派生且带版本的来源标识；标识中绝不能包含原始载荷或用户内容。
+
+  - id: model_call.event_at
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: UtcTimestamp
+    nullable: false
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - "log_record.time_unix_nano"
+          - "log_record.observed_time_unix_nano"
+      - source_id: codex-sessions
+        mappings:
+          - "session.event.timestamp"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.created_at"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 排序模型调用并限定时间范围查询。
+    safety_boundary: 规范化为 UTC，并拒绝无效或无界的时间戳。
+
+  - id: model_call.model
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: ModelName
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["model"]'
+          - 'log_record.attributes["model_name"]'
+          - 'log_record.attributes["gen_ai.request.model"]'
+          - 'log_record.attributes["gen_ai.response.model"]'
+          - 'log_record.attributes["openai.model"]'
+          - "log_record.body.response.model"
+      - source_id: codex-sessions
+        mappings:
+          - "session.model_call.model"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.model"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 识别和筛选调用所使用的模型。
+    safety_boundary: 只接受经过验证且不含自由文本的有界模型标签。
+
+  - id: model_call.reasoning_effort
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: ReasoningEffort
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["reasoning_effort"]'
+          - 'log_record.attributes["reasoning.effort"]'
+          - 'log_record.attributes["openai.reasoning_effort"]'
+          - 'log_record.attributes["model_reasoning_effort"]'
+      - source_id: local-codex-config
+        mappings:
+          - "config.model_reasoning_effort"
+      - source_id: codex-sessions
+        mappings:
+          - "session.model_call.reasoning_effort"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.reasoning_effort"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 在已知时说明请求的推理配置。
+    safety_boundary: >-
+      只接受已注册的枚举值，并保留该值是直接取得还是推断所得的信息。
+
+  - id: model_call.input_tokens
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: TokenCount
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["input_token_count"]'
+          - 'log_record.attributes["input_tokens"]'
+          - "log_record.body.response.usage.input_tokens"
+      - source_id: codex-sessions
+        mappings:
+          - "session.model_call.usage.input_tokens"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.input_tokens"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 显示输入 token 用量并计算本地汇总。
+    safety_boundary: 只接受经过验证的非负有界整数。
+
+  - id: model_call.cached_input_tokens
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: TokenCount
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["cached_token_count"]'
+          - 'log_record.attributes["cached_input_tokens"]'
+          - "log_record.body.response.usage.cached_input_tokens"
+          - "log_record.body.response.usage.input_tokens_details.cached_tokens"
+      - source_id: codex-sessions
+        mappings:
+          - "session.model_call.usage.cached_input_tokens"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.cached_input_tokens"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 显示输入 token 用量中的缓存部分。
+    safety_boundary: 只接受经过验证的非负有界整数。
+
+  - id: model_call.output_tokens
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: TokenCount
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["output_token_count"]'
+          - 'log_record.attributes["output_tokens"]'
+          - "log_record.body.response.usage.output_tokens"
+      - source_id: codex-sessions
+        mappings:
+          - "session.model_call.usage.output_tokens"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.output_tokens"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 显示输出 token 用量并计算本地汇总。
+    safety_boundary: 只接受经过验证的非负有界整数。
+
+  - id: model_call.reasoning_output_tokens
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: TokenCount
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["reasoning_token_count"]'
+          - 'log_record.attributes["reasoning_output_tokens"]'
+          - "log_record.body.response.usage.reasoning_output_tokens"
+          - "log_record.body.response.usage.output_tokens_details.reasoning_tokens"
+      - source_id: codex-sessions
+        mappings:
+          - "session.model_call.usage.reasoning_output_tokens"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.reasoning_output_tokens"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 显示推理 token 用量并评估已注册的 token 规则。
+    safety_boundary: >-
+      只接受经过验证的非负有界整数；不得根据计数推断隐藏的推理内容。
+
+  - id: model_call.event_name
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: EventName
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["event.name"]'
+          - 'log_record.attributes["event_name"]'
+          - 'log_record.attributes["otel.event.name"]'
+          - 'log_record.attributes["name"]'
+          - 'log_record.attributes["log.name"]'
+      - source_id: codex-sessions
+        mappings:
+          - "session.event.name"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.raw_event_name"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 说明生成该观测的已注册 Codex 事件。
+    safety_boundary: 只接受 `codex.sse_event` 等已注册的有界事件标签。
+
+  - id: model_call.stream_event_kind
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: StreamEventKind
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["stream_event_kind"]'
+          - 'log_record.attributes["sse_event_kind"]'
+          - 'log_record.attributes["event.kind"]'
+          - 'log_record.attributes["kind"]'
+          - 'log_record.attributes["type"]'
+          - 'log_record.attributes["response.type"]'
+          - "log_record.body.type"
+      - source_id: codex-sessions
+        mappings:
+          - "session.model_call.stream_event_kind"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.stream_event_kind"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 区分 `response.completed` 与其他已注册的流事件。
+    safety_boundary: 只接受经过验证且不含正文文本的有界流事件标签。
+
+  - id: model_call.client
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: ClientName
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["client"]'
+          - 'log_record.attributes["client.name"]'
+          - 'log_record.attributes["app"]'
+          - 'log_record.attributes["app.name"]'
+          - 'resource.attributes["service.name"]'
+      - source_id: codex-sessions
+        mappings:
+          - "session.client"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.client"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 在本地筛选器中区分受支持的 Codex 客户端。
+    safety_boundary: 只接受经过验证的有界客户端标签，不得包含主机或账户数据。
+
+  - id: model_call.surface
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: SurfaceName
+    nullable: true
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["surface"]'
+          - 'log_record.attributes["codex.surface"]'
+          - 'log_record.attributes["app.surface"]'
+          - 'log_record.attributes["originator"]'
+      - source_id: codex-sessions
+        mappings:
+          - "session.surface"
+      - source_id: legacy-import
+        mappings:
+          - "legacy.codex_token_events.surface"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 区分 Desktop、CLI 和 IDE 监控界面。
+    safety_boundary: 只接受经过验证的有界界面标签。
+
+  - id: model_call.temporal_class
+    entities:
+      - ModelCall
+      - ModelCallObservation
+    domain_type: DataOrigin
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "ingestion_context.data_origin"
+      - source_id: legacy-import
+        mappings:
+          - "derived:historical"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 区分实时调用与导入或已有的历史记录。
+    safety_boundary: >-
+      只接受 `realtime` 或 `historical` 枚举值；历史值不得进入实时动作管线。
+
+  - id: model_call_observation.id
+    entities:
+      - ModelCallObservation
+    domain_type: ModelCallObservationId
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "derived:observation_identity"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 为每条已接纳的来源观测提供稳定的本地标识。
+    safety_boundary: 只能从已注册的安全来源标识组成部分派生。
+
+  - id: model_call_observation.source_id
+    entities:
+      - ModelCallObservation
+    domain_type: SourceId
+    nullable: false
+    sources:
+      - source_id: source-adapter
+        mappings:
+          - "source_event_identity.source.id"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 将证据归属到生成它的适配器。
+    safety_boundary: 只接受 engine 已注册的来源 ID。
+
+  - id: model_call_observation.source_contract_version
+    entities:
+      - ModelCallObservation
+    domain_type: SourceContractVersion
+    nullable: false
+    sources:
+      - source_id: source-adapter
+        mappings:
+          - "source_event_identity.source.contract_version"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 保留定义该观测的来源契约。
+    safety_boundary: 只接受已注册的正整数来源契约版本。
+
+  - id: model_call_observation.observed_at
+    entities:
+      - ModelCallObservation
+    domain_type: UtcTimestamp
+    nullable: false
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - "receiver.observed_at_utc"
+      - source_id: codex-sessions
+        mappings:
+          - "scanner.observed_at_utc"
+      - source_id: legacy-import
+        mappings:
+          - "import.observed_at_utc"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 审计本地来源适配器观测到证据的时间。
+    safety_boundary: 在本地生成经过验证的 UTC 时间戳。
+
+  - id: model_call_observation.source_event_identity
+    entities:
+      - ModelCallObservation
+    domain_type: SourceEventIdentity
+    nullable: false
+    sources:
+      - source_id: otlp-logs
+        mappings:
+          - 'log_record.attributes["response.id"]'
+          - "log_record.trace_id"
+          - "log_record.span_id"
+          - "log_record.body.response.id"
+      - source_id: codex-sessions
+        mappings:
+          - "session.event.id"
+      - source_id: domain-engine
+        mappings:
+          - "derived:versioned_allowlisted_fingerprint"
+      - source_id: legacy-import
+        mappings:
+          - "derived:versioned_legacy_row_identity"
+    classification: pseudonymous_identifier
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 以确定性方式去重重传的来源事件。
+    safety_boundary: >-
+      使用有界稳定的来源 ID，或仅由目录所列元数据组成的指纹；不得将原始载荷或用户内容哈希进标识。
+
+  - id: model_call_observation.source_event_identity_version
+    entities:
+      - ModelCallObservation
+    domain_type: IdentityAlgorithmVersion
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_event_identity.algorithm_version"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 保留来源标识的历史语义。
+    safety_boundary: 只接受受支持的正整数标识算法版本。
+
+  - id: model_call_observation.field_provenance
+    entities:
+      - ModelCallObservation
+    domain_type: FieldProvenance
+    nullable: false
+    sources:
+      - source_id: source-adapter
+        mappings:
+          - "typed_extractor.registered_field_provenance"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 说明每个类型化值使用的已注册来源路径。
+    safety_boundary: >-
+      只存储已注册的溯源枚举值或目录字段引用，不得存储任意来源键或属性映射。
+
+  - id: model_call_observation.field_quality
+    entities:
+      - ModelCallObservation
+    domain_type: EvidenceQuality
+    nullable: false
+    sources:
+      - source_id: source-adapter
+        mappings:
+          - "typed_extractor.field_quality"
+    classification: operational_metadata
+    persisted: true
+    retention: structured-monitoring
+    display_purpose: 区分直接证据和推断值，以确定优先级。
+    safety_boundary: 只接受已注册的直接或推断质量枚举值。
+
+  - id: source_health.source_id
+    entities:
+      - SourceHealth
+    domain_type: SourceId
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.identity.id"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 标识正在显示接收器或扫描器健康状态的来源。
+    safety_boundary: 只接受 engine 已注册的来源 ID。
+
+  - id: source_health.source_contract_version
+    entities:
+      - SourceHealth
+    domain_type: SourceContractVersion
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.identity.contract_version"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 显示拥有该健康状态的已注册来源契约。
+    safety_boundary: 只接受已注册的正整数来源契约版本。
+
+  - id: source_health.supported_fields
+    entities:
+      - SourceHealth
+    domain_type: FieldIdSet
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.supported_fields"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 报告该来源能够安全提供的目录字段。
+    safety_boundary: >-
+      只接受本目录已注册字段 ID 的有界集合；不得将任意来源键复制进该集合。
+
+  - id: source_health.status
+    entities:
+      - SourceHealth
+    domain_type: SourceHealthStatus
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.status"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 显示来源处于健康、降级还是不可用状态。
+    safety_boundary: 只接受已注册的有界状态枚举值。
+
+  - id: source_health.last_accepted_at
+    entities:
+      - SourceHealth
+    domain_type: UtcTimestamp
+    nullable: true
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.last_accepted_at_utc"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 显示来源最近一次接纳安全类型化证据的时间。
+    safety_boundary: 规范化为 UTC，且只在类型化提取被接纳后更新。
+
+  - id: source_health.last_error_code
+    entities:
+      - SourceHealth
+    domain_type: SafeErrorCode
+    nullable: true
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.last_failure.code"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 提供不含载荷细节且可执行的接收器诊断信息。
+    safety_boundary: >-
+      只存储已注册的稳定代码；丢弃原始错误、路径、标识符和载荷摘录。
+
+  - id: source_health.last_error_occurred_at
+    entities:
+      - SourceHealth
+    domain_type: UtcTimestamp
+    nullable: true
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.last_failure.occurred_at"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 显示最近一次隐私安全的来源故障发生时间。
+    safety_boundary: >-
+      规范化为 UTC，且只能与已注册的安全错误代码一同持久化；不得保留错误链或载荷摘录。
+
+  - id: source_health.updated_at
+    entities:
+      - SourceHealth
+    domain_type: UtcTimestamp
+    nullable: false
+    sources:
+      - source_id: domain-engine
+        mappings:
+          - "source_runtime.health_updated_at_utc"
+    classification: operational_metadata
+    persisted: true
+    retention: source-health-state
+    display_purpose: 显示当前来源健康状态最近更新时间。
+    safety_boundary: 在本地生成经过验证的 UTC 时间戳。
+
+deny_list:
+  - id: raw_payloads
+    field_ids:
+      - raw.body
+      - raw.json
+      - raw.payload
+    field_id_terms:
+      - raw_body
+      - raw_json
+      - raw_payload
+      - generic_json
+    source_keys:
+      - log_record.body
+      - raw_json
+      - raw_payload
+      - payload
+    reason: >-
+      原始遥测容器可能携带当前或未来的任意用户内容，绝不是有效的领域值或持久化值。
+    enforcement: 在有界内存中解码，提取已注册的类型化路径，然后丢弃。
+
+  - id: user_content
+    field_ids:
+      - content.prompt
+      - content.response_text
+      - content.user_message
+      - content.assistant_message
+    field_id_terms:
+      - prompt
+      - response_text
+      - user_message
+      - assistant_message
+    source_keys:
+      - prompt
+      - user.prompt
+      - response.text
+      - output_text
+      - input_text
+    reason: 提示词、响应和消息文本不属于监控目的。
+    enforcement: 在构造类型化领域值、记录日志、生成告警和存储之前丢弃。
+
+  - id: tool_data
+    field_ids:
+      - tool.arguments
+      - tool.output
+      - tool.data
+    field_id_terms:
+      - tool_arguments
+      - tool_output
+      - tool_data
+    source_keys:
+      - tool.arguments
+      - tool.output
+      - arguments
+      - command_output
+    reason: 工具参数和输出可能包含源代码、秘密或本地数据。
+    enforcement: 在构造类型化领域值、记录日志、生成告警和存储之前丢弃。
+
+  - id: reasoning_content
+    field_ids:
+      - reasoning.summary
+      - reasoning.content
+      - reasoning.encrypted
+    field_id_terms:
+      - reasoning_summary
+      - reasoning_content
+      - encrypted_reasoning
+    source_keys:
+      - reasoning.summary
+      - reasoning.content
+      - encrypted_reasoning
+      - reasoning.encrypted_content
+    reason: 隐藏、摘要化或加密的推理内容绝不属于监控数据。
+    enforcement: 在构造类型化领域值、记录日志、生成告警和存储之前丢弃。
+
+  - id: commands
+    field_ids:
+      - command.text
+      - command.shell
+      - command.executable
+    field_id_terms:
+      - command
+      - command_text
+      - shell_command
+    source_keys:
+      - command
+      - shell.command
+      - executable
+    reason: 命令属于用户或工具内容，绝不能成为已存储或可执行的数据。
+    enforcement: 在构造领域值之前丢弃，绝不转发给进程 API。
+
+  - id: workspace_paths
+    field_ids:
+      - workspace.path
+      - filesystem.path
+      - file.path
+    field_id_terms:
+      - workspace_path
+      - filesystem_path
+      - file_path
+    source_keys:
+      - workspace.path
+      - cwd
+      - file.path
+      - filesystem.path
+    reason: 本地路径会暴露与 token 监控无关的用户和工作区信息。
+    enforcement: 在构造类型化领域值、诊断和存储之前丢弃。
+
+  - id: personal_accounts
+    field_ids:
+      - identity.email
+      - identity.account_id
+      - identity.user_id
+    field_id_terms:
+      - email
+      - account_id
+      - user_id
+    source_keys:
+      - user.email
+      - account.id
+      - account_id
+      - user.id
+    reason: 本地监控不需要电子邮件、账户和用户标识符。
+    enforcement: 在构造类型化领域值、记录日志和存储之前丢弃。
+
+  - id: authentication_material
+    field_ids:
+      - auth.api_key
+      - auth.cookie
+      - auth.token
+      - auth.authorization
+    field_id_terms:
+      - api_key
+      - cookie
+      - auth_token
+      - authorization
+    source_keys:
+      - api.key
+      - api_key
+      - cookie
+      - auth.token
+      - authorization
+    reason: 认证材料属于秘密信息，不具备监控或显示用途。
+    enforcement: 立即丢弃，绝不能纳入错误、日志、存储或输出。

@@ -1,0 +1,420 @@
+name: Package unsigned development artifacts
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/package-unsigned.yml"
+      - "apps/desktop/**"
+      - "crates/**"
+      - "web/**"
+      - "scripts/release/**"
+      - "scripts/installed-artifact-smoke.mjs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unsigned-development-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APPIMAGE_EXTRACT_AND_RUN: "1"
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  package:
+    name: Unsigned development package (${{ matrix.platform }} ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            platform: windows
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
+            bundles: null
+          - runner: macos-15-intel
+            platform: macos
+            arch: x86_64
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+          - runner: macos-15
+            platform: macos
+            arch: aarch64
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - runner: ubuntu-22.04
+            platform: linux
+            arch: x86_64
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb,rpm
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Enable pinned pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack install --global pnpm@11.13.0
+          test "$(pnpm --version)" = "11.13.0"
+
+      - name: Install locked workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Rust target
+        shell: bash
+        run: |
+          rustup show active-toolchain
+          rustup target add "${{ matrix.target }}"
+          test "$(rustc --version | awk '{print $2}')" = "1.97.0"
+
+      - name: Cache Rust build inputs
+        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
+        with:
+          shared-key: unsigned-development-${{ matrix.target }}
+          cache-on-failure: true
+
+      - name: Install Linux packaging and desktop dependencies
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            dbus-x11 \
+            file \
+            libayatana-appindicator3-dev \
+            libfuse2 \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            rpm \
+            xauth \
+            xdg-utils \
+            xvfb
+
+      - name: Build Dashboard assets
+        run: pnpm --dir web build
+
+      - name: Verify pinned release tools
+        shell: bash
+        run: |
+          test "$(pnpm exec tauri --version)" = "tauri-cli 2.11.4"
+          node -e "import('./scripts/release/release-contract.mjs').then(({ readProductMetadata }) => console.log(readProductMetadata().version))"
+
+      - name: Build application executable
+        shell: bash
+        env:
+          CODEX_MONITOR_BUILD_CHANNEL: unsigned-development
+        run: >-
+          pnpm exec tauri build
+          --ci
+          --target "${{ matrix.target }}"
+          --no-bundle
+          --config apps/desktop/src-tauri/tauri.conf.json
+          --
+          --locked
+
+      - name: Bundle unsigned Linux packages
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: >-
+          pnpm exec tauri bundle
+          --ci
+          --target "${{ matrix.target }}"
+          --bundles "${{ matrix.bundles }}"
+          --no-sign
+          --config apps/desktop/src-tauri/tauri.conf.json
+
+      - name: Bundle ad-hoc signed macOS packages
+        if: matrix.platform == 'macos'
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: "-"
+        run: >-
+          pnpm exec tauri bundle
+          --ci
+          --target "${{ matrix.target }}"
+          --bundles "${{ matrix.bundles }}"
+          --config apps/desktop/src-tauri/tauri.conf.json
+
+      - name: Stage strict unsigned artifact set
+        id: stage
+        shell: bash
+        run: >-
+          node scripts/release/stage-artifacts.mjs
+          --channel unsigned-development
+          --platform "${{ matrix.platform }}"
+          --arch "${{ matrix.arch }}"
+          --target "${{ matrix.target }}"
+          --target-dir "target/${{ matrix.target }}/release"
+          --output release-staging
+
+      - name: Verify Windows portable executable is unsigned-development
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $signature = Get-AuthenticodeSignature -LiteralPath "${{ steps.stage.outputs.executable_path }}"
+          if ($signature.Status -ne "NotSigned") {
+            throw "Unsigned-development executable unexpectedly has signature status '$($signature.Status)'"
+          }
+
+      - name: Verify macOS ad-hoc signature and no notarization
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          codesign --verify --deep --strict "${{ steps.stage.outputs.app_bundle_path }}"
+          signature="$(codesign -dv --verbose=4 "${{ steps.stage.outputs.app_bundle_path }}" 2>&1)"
+          grep --quiet '^Signature=adhoc$' <<<"$signature"
+          if xcrun stapler validate "${{ steps.stage.outputs.app_bundle_path }}" >/dev/null 2>&1; then
+            echo "Unsigned-development macOS app unexpectedly has a notarization ticket" >&2
+            exit 1
+          fi
+
+      - name: Verify Linux WebKitGTK package and runtime dependencies
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          deb_depends="$(dpkg-deb --field "${{ steps.stage.outputs.deb_path }}" Depends)"
+          printf '%s\n' "$deb_depends"
+          grep -Eiq 'webkit2gtk[^[:space:],)]*4[._-]?1' <<<"$deb_depends"
+
+          rpm_requires="$(rpm -qp --requires "${{ steps.stage.outputs.rpm_path }}")"
+          printf '%s\n' "$rpm_requires"
+          grep -Eiq 'webkit2gtk[^[:space:],)]*4[._-]?1' <<<"$rpm_requires"
+
+          file "${{ steps.stage.outputs.appimage_path }}" | grep -q 'ELF'
+          ldd_output="$(ldd "${{ steps.stage.outputs.executable_path }}")"
+          printf '%s\n' "$ldd_output"
+          if grep -q 'not found' <<<"$ldd_output"; then
+            echo "Linux application has unresolved dynamic dependencies" >&2
+            exit 1
+          fi
+          grep -Eq 'libwebkit2gtk-4\.1\.so' <<<"$ldd_output"
+
+      - name: Extract Windows portable ZIP into two isolated directories
+        if: matrix.platform == 'windows'
+        id: installed-windows
+        shell: pwsh
+        run: |
+          $portableRoots = @(
+            (Join-Path $env:RUNNER_TEMP "CodexMonitorPortablePrimary"),
+            (Join-Path $env:RUNNER_TEMP "CodexMonitorPortableSecondary")
+          )
+          $executables = @()
+          foreach ($portableRoot in $portableRoots) {
+            if (Test-Path -LiteralPath $portableRoot) {
+              throw "Isolated Windows portable path already exists: $portableRoot"
+            }
+            Expand-Archive -LiteralPath "${{ steps.stage.outputs.portable_zip_path }}" -DestinationPath $portableRoot
+            $executable = Join-Path $portableRoot "codex-monitor.exe"
+            $files = @(Get-ChildItem -LiteralPath $portableRoot -Recurse -File)
+            if ($files.Count -ne 1 -or $files[0].FullName -ne $executable) {
+              throw "Windows portable ZIP must contain only codex-monitor.exe at its root"
+            }
+            $signature = Get-AuthenticodeSignature -LiteralPath $executable
+            if ($signature.Status -ne "NotSigned") {
+              throw "Extracted unsigned-development executable unexpectedly appears signed"
+            }
+            $executables += $executable
+          }
+          "primary_executable_path=$($executables[0])" | Add-Content -LiteralPath $env:GITHUB_OUTPUT
+          "secondary_executable_path=$($executables[1])" | Add-Content -LiteralPath $env:GITHUB_OUTPUT
+
+      - name: Clear Windows platform registration before portable smoke
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          & "${{ steps.installed-windows.outputs.primary_executable_path }}" --cleanup-platform-registration
+          if ($LASTEXITCODE -ne 0) {
+            throw "Windows platform registration cleanup failed before portable smoke"
+          }
+
+      - name: Copy primary macOS app into isolated Applications-like path
+        if: matrix.platform == 'macos'
+        id: installed-macos
+        shell: bash
+        run: |
+          install_root="$RUNNER_TEMP/CodexMonitor Applications"
+          installed_app="$install_root/CodexMonitor.app"
+          test ! -e "$install_root"
+          mkdir -p "$install_root"
+          ditto "${{ steps.stage.outputs.app_bundle_path }}" "$installed_app"
+          executable="$installed_app/Contents/MacOS/codex-monitor"
+          test -x "$executable"
+          printf 'executable_path=%s\n' "$executable" >>"$GITHUB_OUTPUT"
+
+      - name: Copy primary Linux AppImage into isolated stable path
+        if: matrix.platform == 'linux'
+        id: installed-linux
+        shell: bash
+        run: |
+          install_root="$RUNNER_TEMP/codexmonitor-installed"
+          executable="$install_root/CodexMonitor.AppImage"
+          test ! -e "$install_root"
+          mkdir -p "$install_root"
+          cp "${{ steps.stage.outputs.appimage_path }}" "$executable"
+          chmod 755 "$executable"
+          printf 'executable_path=%s\n' "$executable" >>"$GITHUB_OUTPUT"
+
+      - name: Run primary installed Windows smoke contract with notification requirement
+        if: matrix.platform == 'windows'
+        run: >-
+          node scripts/installed-artifact-smoke.mjs
+          --executable "${{ steps.installed-windows.outputs.primary_executable_path }}"
+          --require-notifications
+
+      - name: Run secondary installed Windows smoke contract with notification requirement
+        if: matrix.platform == 'windows'
+        run: >-
+          node scripts/installed-artifact-smoke.mjs
+          --executable "${{ steps.installed-windows.outputs.secondary_executable_path }}"
+          --require-notifications
+
+      - name: Verify Windows notification shortcut follows secondary portable executable
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $shortcutPath = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\CodexMonitor\CodexMonitor (Unsigned Development).lnk"
+          if (-not (Test-Path -LiteralPath $shortcutPath -PathType Leaf)) {
+            throw "Windows notification shortcut was not registered"
+          }
+          $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
+          $expected = [IO.Path]::GetFullPath("${{ steps.installed-windows.outputs.secondary_executable_path }}")
+          $actual = [IO.Path]::GetFullPath($shortcut.TargetPath)
+          if (-not [string]::Equals($actual, $expected, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Windows notification shortcut target does not match the secondary portable executable"
+          }
+
+      - name: Run installed macOS smoke contract
+        if: matrix.platform == 'macos'
+        run: >-
+          node scripts/installed-artifact-smoke.mjs
+          --executable "${{ steps.installed-macos.outputs.executable_path }}"
+
+      - name: Run installed Linux smoke contract
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: >-
+          dbus-run-session --
+          xvfb-run -a
+          node scripts/installed-artifact-smoke.mjs
+          --executable "${{ steps.installed-linux.outputs.executable_path }}"
+
+      - name: Run installed Linux degraded smoke with a fresh isolated profile
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: >-
+          dbus-run-session --
+          xvfb-run -a
+          node scripts/installed-artifact-smoke.mjs
+          --executable "${{ steps.installed-linux.outputs.executable_path }}"
+          --linux-degraded
+
+      - name: Generate pinned CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          file: ${{ steps.stage.outputs.executable_path }}
+          format: cyclonedx-json
+          output-file: ${{ steps.stage.outputs.sbom_path }}
+          syft-version: v1.46.0
+          dependency-snapshot: false
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Verify unsigned artifact allowlist
+        shell: bash
+        run: >-
+          node scripts/release/verify-artifacts.mjs
+          --scope target
+          --root release-staging
+          --channel unsigned-development
+          --platform "${{ matrix.platform }}"
+          --arch "${{ matrix.arch }}"
+
+      - name: Write stable SHA-256 checksums
+        shell: bash
+        run: >-
+          node scripts/release/write-checksums.mjs
+          --root release-staging
+          --output "release-staging/${{ steps.stage.outputs.artifact_prefix }}-SHA256SUMS"
+
+      - name: Verify checksums and final unsigned artifact set
+        shell: bash
+        run: >-
+          node scripts/release/verify-artifacts.mjs
+          --scope target
+          --root release-staging
+          --channel unsigned-development
+          --platform "${{ matrix.platform }}"
+          --arch "${{ matrix.arch }}"
+          --checksums
+
+      - name: Upload clearly labeled unsigned development artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: ${{ steps.stage.outputs.artifact_name }}
+          path: release-staging
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Remove Windows platform registration after portable smoke
+        if: always() && matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $executable = Join-Path $env:RUNNER_TEMP "CodexMonitorPortableSecondary\codex-monitor.exe"
+          if (Test-Path -LiteralPath $executable -PathType Leaf) {
+            & $executable --cleanup-platform-registration
+            if ($LASTEXITCODE -ne 0) {
+              throw "Windows platform registration cleanup failed after portable smoke"
+            }
+          }
+
+      - name: Remove isolated Windows portable extractions
+        if: always() && matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $runnerTemp = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
+          foreach ($name in @("CodexMonitorPortablePrimary", "CodexMonitorPortableSecondary")) {
+            $installRoot = [IO.Path]::GetFullPath((Join-Path $runnerTemp $name))
+            $relative = [IO.Path]::GetRelativePath($runnerTemp, $installRoot)
+            if ($relative.StartsWith("..", [StringComparison]::Ordinal) -or [IO.Path]::IsPathRooted($relative)) {
+              throw "Refusing to clean a Windows path outside RUNNER_TEMP"
+            }
+            if (Test-Path -LiteralPath $installRoot) {
+              Remove-Item -LiteralPath $installRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Remove isolated macOS smoke installation
+        if: always() && matrix.platform == 'macos'
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/CodexMonitor Applications"
+
+      - name: Remove isolated Linux smoke installation
+        if: always() && matrix.platform == 'linux'
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/codexmonitor-installed"

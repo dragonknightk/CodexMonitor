@@ -1,0 +1,17 @@
+title = "CodexMonitor secret scanning"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local environments, generated dependencies and build output are not repository inputs."
+paths = [
+  '''(^|[\\/])\.git([\\/]|$)''',
+  '''(^|[\\/])\.venv([\\/]|$)''',
+  '''(^|[\\/])target([\\/]|$)''',
+  '''(^|[\\/])node_modules([\\/]|$)''',
+  '''(^|[\\/])\.pnpm-store([\\/]|$)''',
+  '''(^|[\\/])web[\\/]dist([\\/]|$)''',
+  '''(^|[\\/])web[\\/]test-results([\\/]|$)''',
+  '''(^|[\\/])web[\\/]playwright-report([\\/]|$)''',
+]

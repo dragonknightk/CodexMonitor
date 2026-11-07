@@ -1,0 +1,52 @@
+[package]
+name = "codex-monitor-desktop"
+description = "Tauri resident desktop host for CodexMonitor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "codex_monitor_desktop"
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+base64.workspace = true
+codex-monitor-core.workspace = true
+codex-monitor-dashboard.workspace = true
+codex-monitor-engine.workspace = true
+codex-monitor-host.workspace = true
+codex-monitor-storage.workspace = true
+codex-monitor-telemetry.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sys-locale.workspace = true
+tauri.workspace = true
+tauri-plugin-opener.workspace = true
+tauri-plugin-single-instance.workspace = true
+tokio.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+notify-rust = { workspace = true, features = ["z-with-tokio"] }
+signal-hook.workspace = true
+tempfile = "=3.27.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+mac-usernotifications.workspace = true
+notify-rust = { workspace = true, features = ["preview-macos-un"] }
+tempfile = "=3.27.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+notify-rust.workspace = true
+winreg = "=0.56.0"
+winsafe.workspace = true
+
+[dev-dependencies]
+codex-monitor-engine = { workspace = true, features = ["test-support"] }
+tempfile = "=3.27.0"
+
+[lints]
+workspace = true

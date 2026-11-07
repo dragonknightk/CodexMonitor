@@ -1,0 +1,75 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "synthetic-codex-client"
+            }
+          },
+          {
+            "key": "codex.surface",
+            "value": {
+              "stringValue": "synthetic-desktop"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "synthetic-codex-scope"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1767225600000000000",
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "codex.sse_event"
+                  }
+                },
+                {
+                  "key": "event.kind",
+                  "value": {
+                    "stringValue": "response.completed"
+                  }
+                },
+                {
+                  "key": "conversation.id",
+                  "value": {
+                    "stringValue": "synthetic-conversation-0001"
+                  }
+                },
+                {
+                  "key": "thread.id",
+                  "value": {
+                    "stringValue": "synthetic-thread-0001"
+                  }
+                },
+                {
+                  "key": "model",
+                  "value": {
+                    "stringValue": "synthetic-model-v1"
+                  }
+                },
+                {
+                  "key": "model_reasoning_effort",
+                  "value": {
+                    "stringValue": "high"
+                  }
+                }
+              ],
+              "body": {
+                "stringValue": "{\"type\":\"response.completed\",\"response\":{\"id\":\"synthetic-response-0001\",\"model\":\"synthetic-model-v1\",\"usage\":{\"input_tokens\":1200,\"input_tokens_details\":{\"cached_tokens\":400},\"output_tokens\":160,\"output_tokens_details\":{\"reasoning_tokens\":516}}}}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

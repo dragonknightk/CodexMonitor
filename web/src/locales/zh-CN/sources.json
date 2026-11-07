@@ -1,0 +1,92 @@
+{
+  "heading": "遥测来源",
+  "contractVersion": "v{{version}}",
+  "state": {
+    "loading": "正在加载来源诊断",
+    "empty": "尚未注册遥测来源。",
+    "errorTitle": "暂时无法读取来源诊断"
+  },
+  "fields": {
+    "receiver": "接收器",
+    "lastAccepted": "最近接受事件",
+    "lastSafeError": "异常诊断",
+    "errorOccurred": "错误发生时间",
+    "updated": "状态更新时间",
+    "supportedFields": "支持字段"
+  },
+  "supportedFieldsEmpty": "未报告字段",
+  "status": {
+    "starting": "正在启动",
+    "healthy": "正常",
+    "degraded": "降级",
+    "unavailable": "不可用",
+    "stopped": "已停止"
+  },
+  "bindState": {
+    "starting": "正在启动",
+    "bound": "已绑定",
+    "retrying": "等待重试",
+    "conflict": "端口冲突",
+    "stopped": "已停止"
+  },
+  "retry": {
+    "action": "重试接收器",
+    "retrying": "正在请求重试…",
+    "accepted": "已请求接收器重试；绑定尝试完成后会更新状态。"
+  },
+  "remediation": {
+    "bindConflict": "停止或重新配置正在使用 127.0.0.1:4318 的本机进程，然后重试此接收器。"
+  },
+  "safeError": {
+    "codes": {
+      "otlp_bind_failed": {
+        "message": "OTLP 接收器无法绑定固定的回环端口。",
+        "remediation": "停止或重新配置正在使用 127.0.0.1:4318 的本机进程，然后重试此接收器。"
+      },
+      "otlp_invalid_content_type": {
+        "message": "某个 OTLP 日志请求使用了不支持的内容类型。",
+        "remediation": "将本机导出器配置为使用 application/x-protobuf 或 application/json 发送 OTLP Logs。"
+      },
+      "otlp_compressed_body_too_large": {
+        "message": "压缩后的 OTLP 日志批次超过允许大小。",
+        "remediation": "减小导出器的日志批次后再重试。"
+      },
+      "otlp_decompressed_body_too_large": {
+        "message": "解压后的 OTLP 日志批次超过允许大小。",
+        "remediation": "减小导出器的日志批次后再重试。"
+      },
+      "otlp_gzip_decode_failed": {
+        "message": "无法解码使用 gzip 压缩的 OTLP 日志批次。",
+        "remediation": "确认导出器只在请求正文为有效 gzip 数据时声明 gzip。"
+      },
+      "otlp_json_decode_failed": {
+        "message": "OTLP JSON 日志批次不符合已注册的 OTLP Logs 结构。",
+        "remediation": "确认导出器按所选内容类型发送标准 OTLP Logs JSON。"
+      },
+      "otlp_protobuf_decode_failed": {
+        "message": "OTLP Protobuf 日志批次不符合已注册的 OTLP Logs 结构。",
+        "remediation": "确认导出器按所选内容类型发送标准 OTLP Logs Protobuf。"
+      },
+      "otlp_decode_timed_out": {
+        "message": "OTLP 日志批次超过了受限的解码时间。",
+        "remediation": "减小导出器的日志批次并重新发送。"
+      },
+      "persistence_commit_failed": {
+        "message": "已接受的元数据无法写入本机监控存储。",
+        "remediation": "重启 CodexMonitor；如果错误持续，请确认当前用户可写入应用数据目录。"
+      },
+      "source_checkpoint_invalid": {
+        "message": "无法验证来源检查点。",
+        "remediation": "重启来源集成；如果错误持续，再重启 CodexMonitor。"
+      },
+      "source_unavailable": {
+        "message": "已注册的遥测来源不可用。",
+        "remediation": "重启本机来源集成，然后重试或重启 CodexMonitor。"
+      },
+      "internal_queue_closed": {
+        "message": "来源处理队列已停止。",
+        "remediation": "重启 CodexMonitor 以重新创建本机处理队列。"
+      }
+    }
+  }
+}

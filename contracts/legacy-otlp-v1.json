@@ -1,0 +1,443 @@
+{
+  "contract_version": 1,
+  "contract_id": "codex-monitor-python-otlp-baseline-v1",
+  "implementation_under_test": "Python MonitorServer prototype",
+  "fixture_origin": "fully-synthetic-hand-authored",
+  "purpose": "Freeze the current OTLP HTTP response and allowlisted SQLite projection before the Rust receiver replaces the Python prototype.",
+  "prototype_deviations": [
+    "Successful application/json requests return a legacy JSON summary instead of an OTLP ExportLogsServiceResponse JSON object.",
+    "Malformed application/x-protobuf requests return a JSON error response instead of a Protobuf error response.",
+    "Responses to gzip requests are not gzip encoded.",
+    "The prototype selects JSON when Content-Type contains the substring json and otherwise attempts Protobuf decoding; it does not strictly validate supported media types."
+  ],
+  "privacy": {
+    "fixture_policy": "No captured logs, prompts, local paths, accounts, databases, UUIDs, or production identifiers. Test identifiers and sensitive sentinels use synthetic-* and example.invalid.",
+    "synthetic_identifiers": [
+      "synthetic-conversation-0001",
+      "synthetic-thread-0001",
+      "synthetic-conversation-metadata-0001",
+      "synthetic-conversation-unknown-0001",
+      "synthetic-thread-unknown-0001",
+      "synthetic-response-0001"
+    ],
+    "forbidden_storage_markers": [
+      "synthetic-response-0001",
+      "synthetic-prompt-marker.example.invalid",
+      "synthetic-response-marker.example.invalid",
+      "synthetic-tool-arguments.example.invalid",
+      "synthetic-tool-output.example.invalid",
+      "synthetic-reasoning-summary.example.invalid",
+      "synthetic-encrypted-reasoning.example.invalid",
+      "synthetic-command.example.invalid",
+      "synthetic-workspace-path.example.invalid",
+      "synthetic-account-0001",
+      "synthetic-user@example.invalid",
+      "synthetic-api-key.example.invalid",
+      "synthetic-cookie.example.invalid",
+      "synthetic-auth-token.example.invalid",
+      "synthetic-future-field.example.invalid",
+      "synthetic-forbidden-unknown-wire.example.invalid",
+      "synthetic-malformed-json.example.invalid",
+      "synthetic-not-gzip.example.invalid"
+    ]
+  },
+  "sqlite_allowlist": {
+    "codex_token_events": [
+      "id",
+      "created_at",
+      "received_at",
+      "conversation_id",
+      "thread_id",
+      "model",
+      "reasoning_effort",
+      "input_tokens",
+      "cached_input_tokens",
+      "output_tokens",
+      "reasoning_output_tokens",
+      "raw_event_name",
+      "stream_event_kind",
+      "surface",
+      "client"
+    ],
+    "codex_conversations": [
+      "conversation_id",
+      "first_seen_at",
+      "last_seen_at",
+      "model",
+      "reasoning_effort",
+      "surface",
+      "client",
+      "raw_event_name"
+    ]
+  },
+  "projections": {
+    "response_completed": {
+      "token_events": [
+        {
+          "created_at": "2026-01-01T00:00:00.000+00:00",
+          "conversation_id": "synthetic-conversation-0001",
+          "thread_id": "synthetic-thread-0001",
+          "model": "synthetic-model-v1",
+          "reasoning_effort": "high",
+          "input_tokens": 1200,
+          "cached_input_tokens": 400,
+          "output_tokens": 160,
+          "reasoning_output_tokens": 516,
+          "raw_event_name": "codex.sse_event",
+          "stream_event_kind": "response.completed",
+          "surface": "synthetic-desktop",
+          "client": "synthetic-codex-client"
+        }
+      ],
+      "conversations": []
+    },
+    "metadata_only": {
+      "token_events": [],
+      "conversations": [
+        {
+          "conversation_id": "synthetic-conversation-metadata-0001",
+          "first_seen_at": "2026-01-02T00:00:00.000+00:00",
+          "last_seen_at": "2026-01-02T00:00:00.000+00:00",
+          "model": "synthetic-model-metadata-v1",
+          "reasoning_effort": "medium",
+          "surface": "synthetic-cli",
+          "client": "synthetic-codex-client",
+          "raw_event_name": "codex.conversation_starts"
+        }
+      ]
+    },
+    "unknown_fields": {
+      "token_events": [
+        {
+          "created_at": "2026-01-03T00:00:00.000+00:00",
+          "conversation_id": "synthetic-conversation-unknown-0001",
+          "thread_id": "synthetic-thread-unknown-0001",
+          "model": "synthetic-model-unknown-v1",
+          "reasoning_effort": "xhigh",
+          "input_tokens": 2000,
+          "cached_input_tokens": 750,
+          "output_tokens": 300,
+          "reasoning_output_tokens": 517,
+          "raw_event_name": "codex.sse_event",
+          "stream_event_kind": "response.completed",
+          "surface": "synthetic-ide",
+          "client": "synthetic-codex-client"
+        }
+      ],
+      "conversations": []
+    },
+    "empty": {
+      "token_events": [],
+      "conversations": []
+    }
+  },
+  "cases": [
+    {
+      "id": "json-response-completed",
+      "coverage": [
+        "response.completed",
+        "otlp-json",
+        "nested-usage-extraction"
+      ],
+      "request": {
+        "source_fixture": "fixtures/otlp/response_completed.json",
+        "body_builder": "otlp_json",
+        "body_transform": "identity",
+        "content_type": "application/json",
+        "content_encoding": null,
+        "embedded_forbidden_markers": ["synthetic-response-0001"],
+        "body_sha256": "3714da6c1fa6d93f1ff721cd3a27cda2eea3c4b49c292b3874341aa18e51b856"
+      },
+      "expected": {
+        "projection": "response_completed",
+        "response": {
+          "status": 200,
+          "content_type": "application/json; charset=utf-8",
+          "content_encoding": null,
+          "decoder": "json",
+          "json_body": {
+            "ok": true,
+            "log_records": 1,
+            "token_events": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "protobuf-response-completed",
+      "coverage": [
+        "response.completed",
+        "binary-protobuf",
+        "nested-usage-extraction"
+      ],
+      "request": {
+        "source_fixture": "fixtures/otlp/response_completed.json",
+        "body_builder": "otlp_protobuf",
+        "body_transform": "identity",
+        "content_type": "application/x-protobuf",
+        "content_encoding": null,
+        "embedded_forbidden_markers": ["synthetic-response-0001"],
+        "body_sha256": "55d2442bbbd5928b5ddd601ca59328c3a944f7b0012cddf88dffab9ed15c8131"
+      },
+      "expected": {
+        "projection": "response_completed",
+        "response": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "decoder": "otlp_protobuf",
+          "protobuf_json": {}
+        }
+      }
+    },
+    {
+      "id": "gzip-json-response-completed",
+      "coverage": ["response.completed", "otlp-json", "gzip"],
+      "request": {
+        "source_fixture": "fixtures/otlp/response_completed.json",
+        "body_builder": "otlp_json",
+        "body_transform": "gzip",
+        "content_type": "application/json",
+        "content_encoding": "gzip",
+        "embedded_forbidden_markers": ["synthetic-response-0001"],
+        "body_sha256": "624a806263ad3b4ae665abf5c6988a6abd67cc73d46114155f3dc24aec4ea2ca"
+      },
+      "expected": {
+        "projection": "response_completed",
+        "response": {
+          "status": 200,
+          "content_type": "application/json; charset=utf-8",
+          "content_encoding": null,
+          "decoder": "json",
+          "json_body": {
+            "ok": true,
+            "log_records": 1,
+            "token_events": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "gzip-protobuf-response-completed",
+      "coverage": ["response.completed", "binary-protobuf", "gzip"],
+      "request": {
+        "source_fixture": "fixtures/otlp/response_completed.json",
+        "body_builder": "otlp_protobuf",
+        "body_transform": "gzip",
+        "content_type": "application/x-protobuf",
+        "content_encoding": "gzip",
+        "embedded_forbidden_markers": ["synthetic-response-0001"],
+        "body_sha256": "230221393c2a53d04463cf58c8d584d3602900a78f625e9d097efc533d39d9ab"
+      },
+      "expected": {
+        "projection": "response_completed",
+        "response": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "decoder": "otlp_protobuf",
+          "protobuf_json": {}
+        }
+      }
+    },
+    {
+      "id": "json-metadata-only",
+      "coverage": ["metadata-only", "otlp-json", "no-token-event"],
+      "request": {
+        "source_fixture": "fixtures/otlp/metadata_only.json",
+        "body_builder": "otlp_json",
+        "body_transform": "identity",
+        "content_type": "application/json",
+        "content_encoding": null,
+        "embedded_forbidden_markers": [],
+        "body_sha256": "335fb88c5888fd98ffafc829a4e4b19ceffd5d81ddd9ab07b53372c0b772c620"
+      },
+      "expected": {
+        "projection": "metadata_only",
+        "response": {
+          "status": 200,
+          "content_type": "application/json; charset=utf-8",
+          "content_encoding": null,
+          "decoder": "json",
+          "json_body": {
+            "ok": true,
+            "log_records": 1,
+            "token_events": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "protobuf-metadata-only",
+      "coverage": ["metadata-only", "binary-protobuf", "no-token-event"],
+      "request": {
+        "source_fixture": "fixtures/otlp/metadata_only.json",
+        "body_builder": "otlp_protobuf",
+        "body_transform": "identity",
+        "content_type": "application/x-protobuf",
+        "content_encoding": null,
+        "embedded_forbidden_markers": [],
+        "body_sha256": "50d544997560275c9ff634fd3cc054198096219c806aa1dfa64335f57997b837"
+      },
+      "expected": {
+        "projection": "metadata_only",
+        "response": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "decoder": "otlp_protobuf",
+          "protobuf_json": {}
+        }
+      }
+    },
+    {
+      "id": "json-unknown-and-forbidden-fields",
+      "coverage": [
+        "unknown-json-fields",
+        "forbidden-content",
+        "attribute-token-extraction"
+      ],
+      "request": {
+        "source_fixture": "fixtures/otlp/unknown_fields.json",
+        "body_builder": "otlp_json",
+        "body_transform": "identity",
+        "content_type": "application/json",
+        "content_encoding": null,
+        "embedded_forbidden_markers": [
+          "synthetic-prompt-marker.example.invalid",
+          "synthetic-response-marker.example.invalid",
+          "synthetic-tool-arguments.example.invalid",
+          "synthetic-tool-output.example.invalid",
+          "synthetic-reasoning-summary.example.invalid",
+          "synthetic-encrypted-reasoning.example.invalid",
+          "synthetic-command.example.invalid",
+          "synthetic-workspace-path.example.invalid",
+          "synthetic-account-0001",
+          "synthetic-user@example.invalid",
+          "synthetic-api-key.example.invalid",
+          "synthetic-cookie.example.invalid",
+          "synthetic-auth-token.example.invalid",
+          "synthetic-future-field.example.invalid"
+        ],
+        "body_sha256": "39831f89db16657bc1aadee80362f40a233076215d5547de351252d99320205e"
+      },
+      "expected": {
+        "projection": "unknown_fields",
+        "response": {
+          "status": 200,
+          "content_type": "application/json; charset=utf-8",
+          "content_encoding": null,
+          "decoder": "json",
+          "json_body": {
+            "ok": true,
+            "log_records": 1,
+            "token_events": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "protobuf-unknown-wire-field",
+      "coverage": [
+        "unknown-protobuf-field",
+        "binary-protobuf",
+        "forbidden-content"
+      ],
+      "request": {
+        "source_fixture": "fixtures/otlp/response_completed.json",
+        "body_builder": "otlp_protobuf_unknown_wire",
+        "body_transform": "identity",
+        "content_type": "application/x-protobuf",
+        "content_encoding": null,
+        "unknown_wire_field_number": 50000,
+        "unknown_wire_value": "synthetic-forbidden-unknown-wire.example.invalid",
+        "embedded_forbidden_markers": [
+          "synthetic-response-0001",
+          "synthetic-forbidden-unknown-wire.example.invalid"
+        ],
+        "body_sha256": "eaf109c886d1889f99c90f5b1a456e347db040fad6b7083e4b3f5270d144de3c"
+      },
+      "expected": {
+        "projection": "response_completed",
+        "response": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "decoder": "otlp_protobuf",
+          "protobuf_json": {}
+        }
+      }
+    },
+    {
+      "id": "malformed-json",
+      "coverage": ["invalid-payload", "malformed-json"],
+      "request": {
+        "source_fixture": "fixtures/otlp/malformed.json",
+        "body_builder": "raw_text",
+        "body_transform": "identity",
+        "content_type": "application/json",
+        "content_encoding": null,
+        "embedded_forbidden_markers": [
+          "synthetic-malformed-json.example.invalid"
+        ],
+        "body_sha256": "729db57bb84014bc09dab7a0d2ebd5fa2710c58b1cf99f3b5a81a718ecb72a24"
+      },
+      "expected": {
+        "projection": "empty",
+        "response": {
+          "status": 400,
+          "content_type": "application/json; charset=utf-8",
+          "content_encoding": null,
+          "decoder": "json",
+          "json_required_keys": ["error"]
+        }
+      }
+    },
+    {
+      "id": "malformed-protobuf",
+      "coverage": ["invalid-payload", "malformed-protobuf"],
+      "request": {
+        "source_fixture": "fixtures/otlp/malformed.protobuf.hex",
+        "body_builder": "hex",
+        "body_transform": "identity",
+        "content_type": "application/x-protobuf",
+        "content_encoding": null,
+        "embedded_forbidden_markers": [],
+        "body_sha256": "386866abef68b72156296521a6fc2f0ab4911e3c5ddb76a805d4ea03c7b9ce0d"
+      },
+      "expected": {
+        "projection": "empty",
+        "response": {
+          "status": 400,
+          "content_type": "application/json; charset=utf-8",
+          "content_encoding": null,
+          "decoder": "json",
+          "json_required_keys": ["error"]
+        }
+      }
+    },
+    {
+      "id": "malformed-gzip-json",
+      "coverage": ["invalid-payload", "malformed-gzip"],
+      "request": {
+        "source_fixture": "fixtures/otlp/malformed.gzip.txt",
+        "body_builder": "raw_text",
+        "body_transform": "identity",
+        "content_type": "application/json",
+        "content_encoding": "gzip",
+        "embedded_forbidden_markers": ["synthetic-not-gzip.example.invalid"],
+        "body_sha256": "f8c0931510bf15d2e71611a155911dfe36be041faecd5aa61912f1f3c7c9e998"
+      },
+      "expected": {
+        "projection": "empty",
+        "response": {
+          "status": 400,
+          "content_type": "application/json; charset=utf-8",
+          "content_encoding": null,
+          "decoder": "json",
+          "json_required_keys": ["error"]
+        }
+      }
+    }
+  ]
+}

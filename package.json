@@ -1,0 +1,48 @@
+{
+  "name": "codex-monitor-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": "11.13.0"
+  },
+  "scripts": {
+    "format": "cargo fmt --all && prettier --write .",
+    "format:check": "cargo fmt --all -- --check && prettier --check .",
+    "lint": "pnpm lint:rust && pnpm lint:web",
+    "lint:rust": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
+    "lint:web": "pnpm --dir web lint",
+    "test:rust": "cargo test --workspace --lib",
+    "test:tooling": "node --test scripts/tests/*.test.mjs",
+    "test:web:unit": "pnpm --dir web test:unit",
+    "test:web:e2e": "pnpm --dir web test:e2e:production",
+    "test:product-integration": "cargo test -p codex-monitor-engine --test product_integration",
+    "test:release": "node --test scripts/release/*.test.mjs",
+    "build:app": "pnpm --dir web build && cargo build -p codex-monitor-desktop",
+    "generate": "pnpm generate:references && pnpm generate:icons",
+    "generate:api": "pnpm --dir web generate:api",
+    "check:api": "pnpm --dir web check:api",
+    "check:crate-boundaries": "node scripts/check-crate-boundaries.mjs",
+    "check:localization": "node scripts/check-localization.mjs",
+    "check:repository-fixtures": "node scripts/check-repository-fixtures.mjs",
+    "check:repository-fixtures:worktree": "node scripts/check-repository-fixtures.mjs --worktree",
+    "check:no-legacy-runtime": "node scripts/check-no-legacy-runtime.mjs",
+    "generate:icons": "tauri icon assets/app-icon.svg --output apps/desktop/src-tauri/icons",
+    "generate:references": "node scripts/generate-references.mjs && node scripts/generate-telemetry-fields.mjs --persistence-manifest crates/codex-monitor-core/telemetry-persistence-fields.yaml",
+    "docs:check": "node scripts/check-docs.mjs",
+    "check:privacy": "node scripts/check-privacy-surfaces.mjs",
+    "check:licenses": "node scripts/check-frontend-licenses.mjs",
+    "audit:rust": "cargo deny check advisories licenses bans sources && cargo audit -D warnings --ignore RUSTSEC-2024-0370 --ignore RUSTSEC-2024-0411 --ignore RUSTSEC-2024-0412 --ignore RUSTSEC-2024-0413 --ignore RUSTSEC-2024-0414 --ignore RUSTSEC-2024-0415 --ignore RUSTSEC-2024-0416 --ignore RUSTSEC-2024-0417 --ignore RUSTSEC-2024-0418 --ignore RUSTSEC-2024-0419 --ignore RUSTSEC-2024-0420 --ignore RUSTSEC-2024-0429 --ignore RUSTSEC-2025-0075 --ignore RUSTSEC-2025-0080 --ignore RUSTSEC-2025-0081 --ignore RUSTSEC-2025-0098 --ignore RUSTSEC-2025-0100",
+    "audit:security": "pnpm check:privacy && pnpm check:licenses && pnpm audit --audit-level high && pnpm audit:rust && gitleaks dir --redact --no-banner --no-color --config .gitleaks.toml .",
+    "verify:changed": "node scripts/verify-changed.mjs",
+    "verify:rust": "pnpm format:check && pnpm lint:rust && pnpm test:rust && pnpm test:product-integration && pnpm build:app",
+    "verify": "node scripts/verify-changed.mjs --full"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4",
+    "minimatch": "10.2.5",
+    "prettier": "3.9.5",
+    "yaml": "2.9.0"
+  }
+}

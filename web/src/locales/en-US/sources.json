@@ -1,0 +1,92 @@
+{
+  "heading": "Sources",
+  "contractVersion": "v{{version}}",
+  "state": {
+    "loading": "Loading source diagnostics",
+    "empty": "No telemetry sources are registered.",
+    "errorTitle": "Source diagnostics are unavailable"
+  },
+  "fields": {
+    "receiver": "Receiver",
+    "lastAccepted": "Last accepted event",
+    "lastSafeError": "Diagnostic",
+    "errorOccurred": "Error occurred",
+    "updated": "State updated",
+    "supportedFields": "Supported fields"
+  },
+  "supportedFieldsEmpty": "None reported",
+  "status": {
+    "starting": "Starting",
+    "healthy": "Healthy",
+    "degraded": "Degraded",
+    "unavailable": "Unavailable",
+    "stopped": "Stopped"
+  },
+  "bindState": {
+    "starting": "Starting",
+    "bound": "Bound",
+    "retrying": "Waiting to retry",
+    "conflict": "Port conflict",
+    "stopped": "Stopped"
+  },
+  "retry": {
+    "action": "Retry receiver",
+    "retrying": "Requesting retry…",
+    "accepted": "Receiver retry requested. The state will update after the bind attempt."
+  },
+  "remediation": {
+    "bindConflict": "Stop or reconfigure the local process using 127.0.0.1:4318, then retry this receiver."
+  },
+  "safeError": {
+    "codes": {
+      "otlp_bind_failed": {
+        "message": "The OTLP receiver could not bind its fixed loopback port.",
+        "remediation": "Stop or reconfigure the local process using 127.0.0.1:4318, then retry this receiver."
+      },
+      "otlp_invalid_content_type": {
+        "message": "An OTLP log request used an unsupported content type.",
+        "remediation": "Configure the local exporter to send OTLP Logs as application/x-protobuf or application/json."
+      },
+      "otlp_compressed_body_too_large": {
+        "message": "A compressed OTLP log batch exceeded the accepted size.",
+        "remediation": "Reduce the exporter's log batch size before retrying."
+      },
+      "otlp_decompressed_body_too_large": {
+        "message": "An expanded OTLP log batch exceeded the accepted size.",
+        "remediation": "Reduce the exporter's log batch size before retrying."
+      },
+      "otlp_gzip_decode_failed": {
+        "message": "A gzip-compressed OTLP log batch could not be decoded.",
+        "remediation": "Verify that the exporter declares gzip only when the request body is valid gzip data."
+      },
+      "otlp_json_decode_failed": {
+        "message": "An OTLP JSON log batch did not match the registered OTLP Logs schema.",
+        "remediation": "Verify the exporter emits standard OTLP Logs JSON for the selected content type."
+      },
+      "otlp_protobuf_decode_failed": {
+        "message": "An OTLP Protobuf log batch did not match the registered OTLP Logs schema.",
+        "remediation": "Verify the exporter emits standard OTLP Logs Protobuf for the selected content type."
+      },
+      "otlp_decode_timed_out": {
+        "message": "An OTLP log batch exceeded the bounded decode time.",
+        "remediation": "Reduce the exporter's log batch size and send the batch again."
+      },
+      "persistence_commit_failed": {
+        "message": "Accepted metadata could not be committed to local monitoring storage.",
+        "remediation": "Restart CodexMonitor. If the error continues, verify the current user can write the application data directory."
+      },
+      "source_checkpoint_invalid": {
+        "message": "The source checkpoint could not be validated.",
+        "remediation": "Restart the source integration, then restart CodexMonitor if the error continues."
+      },
+      "source_unavailable": {
+        "message": "The registered telemetry source is unavailable.",
+        "remediation": "Restart the local source integration, then retry or restart CodexMonitor."
+      },
+      "internal_queue_closed": {
+        "message": "The source processing queue has stopped.",
+        "remediation": "Restart CodexMonitor to recreate the local processing queue."
+      }
+    }
+  }
+}

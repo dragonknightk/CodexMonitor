@@ -1,0 +1,76 @@
+[workspace]
+members = [
+  "crates/codex-monitor-core",
+  "crates/codex-monitor-dashboard",
+  "crates/codex-monitor-engine",
+  "crates/codex-monitor-host",
+  "crates/codex-monitor-storage",
+  "crates/codex-monitor-telemetry",
+  "apps/desktop/src-tauri",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "MIT"
+repository = "https://github.com/dragonknightk/CodexMonitor"
+
+[workspace.dependencies]
+axum = { version = "=0.8.9", features = ["http1", "json", "tokio"] }
+base64 = "=0.22.1"
+codex-monitor-core = { path = "crates/codex-monitor-core" }
+codex-monitor-dashboard = { path = "crates/codex-monitor-dashboard" }
+codex-monitor-engine = { path = "crates/codex-monitor-engine" }
+codex-monitor-host = { path = "crates/codex-monitor-host" }
+codex-monitor-storage = { path = "crates/codex-monitor-storage" }
+codex-monitor-telemetry = { path = "crates/codex-monitor-telemetry" }
+flate2 = "=1.1.9"
+getrandom = "=0.4.3"
+http-body-util = "=0.1.4"
+mac-usernotifications = "=0.3.1"
+mime = "=0.3.17"
+opentelemetry-proto = { version = "=0.32.0", features = ["gen-tonic-messages", "logs", "with-serde"] }
+notify-rust = { version = "=4.18.0", default-features = false }
+prost = "=0.14.4"
+rusqlite = { version = "=0.40.1", features = ["bundled", "hooks", "limits"] }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+serde_urlencoded = "=0.7.1"
+sha2 = "=0.10.9"
+signal-hook = "=0.4.4"
+sys-locale = "=0.3.2"
+tauri = { version = "=2.11.5", features = ["tray-icon"] }
+tauri-build = "=2.6.3"
+tauri-plugin-opener = "=2.5.4"
+tauri-plugin-single-instance = "=2.4.2"
+time = { version = "=0.3.53", features = ["formatting", "macros", "parsing", "serde"] }
+thiserror = "=2.0.18"
+tokio = { version = "=1.51.3", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-stream = "=0.1.18"
+tower = { version = "=0.5.3", features = ["util"] }
+uuid = { version = "=1.23.4", features = ["serde", "v4", "v7"] }
+windows-permissions = "=0.2.4"
+winsafe = { version = "=0.0.28", features = ["advapi", "shell"] }
+
+[workspace.dependencies.proptest]
+version = "=1.11.0"
+default-features = false
+features = ["std"]
+
+[profile.dev]
+debug = 1
+
+[profile.full-debug]
+inherits = "dev"
+debug = "full"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"

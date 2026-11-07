@@ -1,0 +1,52 @@
+{
+  "heading": "推理告警",
+  "suspectedPattern": "疑似推理上限模式",
+  "matchTitle": "{{tokens}} 个推理 token · n = {{pattern}}",
+  "state": {
+    "loading": "正在加载推理告警",
+    "empty": "尚未记录推理模式告警。",
+    "errorTitle": "暂时无法读取推理告警"
+  },
+  "fields": {
+    "ruleVersion": "规则版本",
+    "modelCall": "模型调用",
+    "source": "证据来源",
+    "action": "系统通知"
+  },
+  "quality": {
+    "direct": "直接证据",
+    "inferred": "推断证据"
+  },
+  "action": {
+    "notRequested": "未请求",
+    "states": {
+      "pending": "待执行",
+      "started": "已开始",
+      "completed": "已完成",
+      "failed": "失败",
+      "suppressed": "已抑制",
+      "unavailable": "不可用"
+    },
+    "suppression": {
+      "notifications_disabled": "系统通知已关闭。",
+      "above_threshold": "计算所得 n 超过通知阈值。",
+      "permission_denied": "操作系统拒绝了通知权限。",
+      "coalesced": "此告警已与同一会话的另一条通知合并。",
+      "historical_event": "历史事件不能请求实时通知。",
+      "pre_outbox_upgrade": "此告警早于持久通知 Outbox。"
+    },
+    "errors": {
+      "invalid_parameters": "已注册的通知参数无效。",
+      "permission_denied": "操作系统拒绝了通知权限。",
+      "notification_unavailable": "此主机不支持系统通知。",
+      "notification_dispatch_failed": "主机无法发送系统通知。",
+      "indeterminate_after_crash": "进程在开始发送后停止，无法安全判断是否送达。",
+      "unknown_action_type": "当前版本未注册存储的动作类型。",
+      "internal_queue_closed": "本机通知动作队列已停止。"
+    }
+  },
+  "pagination": {
+    "loadMore": "加载更多告警",
+    "loading": "正在加载更多…"
+  }
+}

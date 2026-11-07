@@ -1,0 +1,33 @@
+[package]
+name = "codex-monitor-telemetry"
+description = "OTLP ingestion and local telemetry source adapters for CodexMonitor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+test-support = []
+
+[dependencies]
+axum.workspace = true
+codex-monitor-core.workspace = true
+flate2.workspace = true
+http-body-util.workspace = true
+mime.workspace = true
+opentelemetry-proto.workspace = true
+prost.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile = "=3.27.0"
+tower.workspace = true
+
+[lints]
+workspace = true

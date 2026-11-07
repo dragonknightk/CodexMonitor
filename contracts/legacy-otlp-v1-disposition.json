@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "authority_id": "codex-monitor-rust-legacy-otlp-cutover-v1",
+  "classification_scope": {
+    "preserved": "The frozen request has the same acceptance result, response mapping, and allowlisted semantic projection at the typed Rust boundary.",
+    "intentional_change": "At least one frozen request response or allowlisted projection behavior deliberately differs in the Rust implementation.",
+    "shared_cutover_changes": "Physical SQLite normalization and behavior outside the eleven frozen requests are audited in docs/development/legacy-contract-cutover.md and do not change a case classification by themselves."
+  },
+  "baseline": {
+    "path": "contracts/legacy-otlp-v1.json",
+    "contract_id": "codex-monitor-python-otlp-baseline-v1",
+    "case_count": 11,
+    "sha256": "927e378327c62f3a9be4f96771d7be657fcd3c576fc142b44c19d02d2d963326",
+    "fragment_sha256": {
+      "case_ids": "d4cf7efc20a90b113a76b70467d57ea3108350ea32c0a714e9afe3982aa0f1c9",
+      "fixture_paths": "9d161f4a678797aa37d9c329be6501007130302e1f1b85760ef0a8214034c784",
+      "privacy_forbidden_storage_markers": "019ca6228ca40993563cc6a2f0ed6916f751fef40639b7017a53df558ec8d7ca",
+      "sqlite_allowlist": "d91e563bfb34e3dd355e50fa4b582a122eb856f6f9aed00748f8bdebbbe047c8",
+      "projections": "213cb83a452a3b84154ef37f039130dbec8c25632995cd87ffb9660c134eba34"
+    }
+  },
+  "runtime_evidence": {
+    "authority_test": "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+    "execution_test": "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+  },
+  "difference_catalog": {
+    "standard_otlp_json_success_response": {
+      "legacy": "JSON success returned {ok,log_records,token_events} with a charset parameter.",
+      "current": "JSON success returns the standard empty ExportLogsServiceResponse mapping {} with Content-Type application/json.",
+      "rust_evidence": "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+    },
+    "normalized_conversation_projection": {
+      "legacy": "A metadata-only event wrote model, reasoning effort, surface, client, event name, and source event time into codex_conversations.",
+      "current": "The typed extractor retains the allowlisted metadata evidence, while the canonical conversation stores only source/thread identity and local observation bounds and does not fabricate a completed call.",
+      "rust_evidence": "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+    },
+    "encoding_matched_google_rpc_status": {
+      "legacy": "Malformed requests returned an ad-hoc JSON object containing error, including for Protobuf requests.",
+      "current": "Malformed requests return google.rpc.Status with code 3, a closed safe error code, and the request JSON or Protobuf encoding.",
+      "rust_evidence": "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+    }
+  },
+  "cases": [
+    {
+      "id": "json-response-completed",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "3714da6c1fa6d93f1ff721cd3a27cda2eea3c4b49c292b3874341aa18e51b856",
+      "legacy_projection": "response_completed",
+      "difference_codes": ["standard_otlp_json_success_response"],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/json",
+          "content_encoding": null,
+          "body_kind": "otlp_json_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 1,
+          "conversations": 1,
+          "domain_work": 1,
+          "conversation_source_id": "synthetic-conversation-0001",
+          "thread_source_id": "synthetic-thread-0001"
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "protobuf-response-completed",
+      "disposition": "preserved",
+      "frozen_request_sha256": "55d2442bbbd5928b5ddd601ca59328c3a944f7b0012cddf88dffab9ed15c8131",
+      "legacy_projection": "response_completed",
+      "difference_codes": [],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "body_kind": "otlp_protobuf_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 1,
+          "conversations": 1,
+          "domain_work": 1,
+          "conversation_source_id": "synthetic-conversation-0001",
+          "thread_source_id": "synthetic-thread-0001"
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "gzip-json-response-completed",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "624a806263ad3b4ae665abf5c6988a6abd67cc73d46114155f3dc24aec4ea2ca",
+      "legacy_projection": "response_completed",
+      "difference_codes": ["standard_otlp_json_success_response"],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/json",
+          "content_encoding": null,
+          "body_kind": "otlp_json_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 1,
+          "conversations": 1,
+          "domain_work": 1,
+          "conversation_source_id": "synthetic-conversation-0001",
+          "thread_source_id": "synthetic-thread-0001"
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "gzip-protobuf-response-completed",
+      "disposition": "preserved",
+      "frozen_request_sha256": "230221393c2a53d04463cf58c8d584d3602900a78f625e9d097efc533d39d9ab",
+      "legacy_projection": "response_completed",
+      "difference_codes": [],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "body_kind": "otlp_protobuf_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 1,
+          "conversations": 1,
+          "domain_work": 1,
+          "conversation_source_id": "synthetic-conversation-0001",
+          "thread_source_id": "synthetic-thread-0001"
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "json-metadata-only",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "335fb88c5888fd98ffafc829a4e4b19ceffd5d81ddd9ab07b53372c0b772c620",
+      "legacy_projection": "metadata_only",
+      "difference_codes": [
+        "standard_otlp_json_success_response",
+        "normalized_conversation_projection"
+      ],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/json",
+          "content_encoding": null,
+          "body_kind": "otlp_json_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 0,
+          "conversations": 1,
+          "domain_work": 0,
+          "conversation_source_id": "synthetic-conversation-metadata-0001",
+          "thread_source_id": null
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "protobuf-metadata-only",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "50d544997560275c9ff634fd3cc054198096219c806aa1dfa64335f57997b837",
+      "legacy_projection": "metadata_only",
+      "difference_codes": ["normalized_conversation_projection"],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "body_kind": "otlp_protobuf_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 0,
+          "conversations": 1,
+          "domain_work": 0,
+          "conversation_source_id": "synthetic-conversation-metadata-0001",
+          "thread_source_id": null
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "json-unknown-and-forbidden-fields",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "39831f89db16657bc1aadee80362f40a233076215d5547de351252d99320205e",
+      "legacy_projection": "unknown_fields",
+      "difference_codes": ["standard_otlp_json_success_response"],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/json",
+          "content_encoding": null,
+          "body_kind": "otlp_json_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 1,
+          "conversations": 1,
+          "domain_work": 1,
+          "conversation_source_id": "synthetic-conversation-unknown-0001",
+          "thread_source_id": "synthetic-thread-unknown-0001"
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "protobuf-unknown-wire-field",
+      "disposition": "preserved",
+      "frozen_request_sha256": "eaf109c886d1889f99c90f5b1a456e347db040fad6b7083e4b3f5270d144de3c",
+      "legacy_projection": "response_completed",
+      "difference_codes": [],
+      "current_expectation": {
+        "decode": "accepted",
+        "safe_error_code": null,
+        "source_observations": 1,
+        "http": {
+          "status": 200,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "body_kind": "otlp_protobuf_export_response",
+          "google_code": null,
+          "message": null
+        },
+        "native_projection": {
+          "model_calls": 1,
+          "conversations": 1,
+          "domain_work": 1,
+          "conversation_source_id": "synthetic-conversation-0001",
+          "thread_source_id": "synthetic-thread-0001"
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "malformed-json",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "729db57bb84014bc09dab7a0d2ebd5fa2710c58b1cf99f3b5a81a718ecb72a24",
+      "legacy_projection": "empty",
+      "difference_codes": ["encoding_matched_google_rpc_status"],
+      "current_expectation": {
+        "decode": "rejected",
+        "safe_error_code": "otlp_json_decode_failed",
+        "source_observations": 0,
+        "http": {
+          "status": 400,
+          "content_type": "application/json",
+          "content_encoding": null,
+          "body_kind": "google_rpc_status_json",
+          "google_code": 3,
+          "message": "otlp_json_decode_failed"
+        },
+        "native_projection": {
+          "model_calls": 0,
+          "conversations": 0,
+          "domain_work": 0,
+          "conversation_source_id": null,
+          "thread_source_id": null
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "malformed-protobuf",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "386866abef68b72156296521a6fc2f0ab4911e3c5ddb76a805d4ea03c7b9ce0d",
+      "legacy_projection": "empty",
+      "difference_codes": ["encoding_matched_google_rpc_status"],
+      "current_expectation": {
+        "decode": "rejected",
+        "safe_error_code": "otlp_protobuf_decode_failed",
+        "source_observations": 0,
+        "http": {
+          "status": 400,
+          "content_type": "application/x-protobuf",
+          "content_encoding": null,
+          "body_kind": "google_rpc_status_protobuf",
+          "google_code": 3,
+          "message": "otlp_protobuf_decode_failed"
+        },
+        "native_projection": {
+          "model_calls": 0,
+          "conversations": 0,
+          "domain_work": 0,
+          "conversation_source_id": null,
+          "thread_source_id": null
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    },
+    {
+      "id": "malformed-gzip-json",
+      "disposition": "intentional_change",
+      "frozen_request_sha256": "f8c0931510bf15d2e71611a155911dfe36be041faecd5aa61912f1f3c7c9e998",
+      "legacy_projection": "empty",
+      "difference_codes": ["encoding_matched_google_rpc_status"],
+      "current_expectation": {
+        "decode": "rejected",
+        "safe_error_code": "otlp_gzip_decode_failed",
+        "source_observations": 0,
+        "http": {
+          "status": 400,
+          "content_type": "application/json",
+          "content_encoding": null,
+          "body_kind": "google_rpc_status_json",
+          "google_code": 3,
+          "message": "otlp_gzip_decode_failed"
+        },
+        "native_projection": {
+          "model_calls": 0,
+          "conversations": 0,
+          "domain_work": 0,
+          "conversation_source_id": null,
+          "thread_source_id": null
+        }
+      },
+      "rust_test_evidence": [
+        "legacy_contract::frozen_authorities_are_complete_and_self_consistent",
+        "legacy_contract::all_frozen_cases_execute_through_native_ingestion"
+      ]
+    }
+  ]
+}

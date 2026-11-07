@@ -1,0 +1,365 @@
+version: 2
+migration_authority: crates/codex-monitor-storage/migrations
+reviewed_against:
+  - docs/_meta/telemetry-fields.yaml
+  - crates/codex-monitor-core/telemetry-persistence-fields.yaml
+  - PRIVACY.md
+  - PRIVACY.zh-CN.md
+
+sqlite_tables:
+  - table: schema_migrations
+    classification: migration_audit
+    columns: [version, name, sha256, sql_bytes, applied_at]
+    rationale: Immutable migration identity and application time; no telemetry values.
+  - table: telemetry_field_registry
+    classification: operational_metadata
+    columns: [field_id, persisted]
+    rationale: Closed catalog membership copied from the reviewed field manifest.
+  - table: conversations
+    classification: pseudonymous_identifier
+    columns:
+      [
+        id,
+        source_id,
+        source_provenance_source_id,
+        source_provenance_contract_version,
+        source_provenance_observed_at,
+        source_quality,
+        source_priority,
+        thread_id,
+        thread_provenance_source_id,
+        thread_provenance_contract_version,
+        thread_provenance_observed_at,
+        thread_quality,
+        thread_priority,
+        first_observed_at,
+        last_observed_at,
+      ]
+    rationale: Internal and source conversation relationships plus bounded provenance and UTC times; no display names or content.
+  - table: conversation_source_keys
+    classification: pseudonymous_identifier
+    columns:
+      [
+        telemetry_source_id,
+        source_contract_version,
+        key_kind,
+        key_value,
+        conversation_id,
+        first_observed_at,
+        last_observed_at,
+      ]
+    rationale: Bounded opaque source keys used only to correlate a canonical conversation.
+  - table: turns
+    classification: structured_monitoring
+    columns:
+      [
+        id,
+        conversation_id,
+        source_id,
+        source_provenance_source_id,
+        source_provenance_contract_version,
+        source_provenance_observed_at,
+        source_quality,
+        source_priority,
+        event_at,
+        event_provenance_source_id,
+        event_provenance_contract_version,
+        event_provenance_observed_at,
+        event_quality,
+        event_priority,
+      ]
+    rationale: Proven turn relationships, UTC time, and closed provenance values.
+  - table: model_calls
+    classification: structured_monitoring
+    columns:
+      [
+        id,
+        canonical_source_id,
+        canonical_source_contract_version,
+        canonical_identity_version,
+        canonical_identity_kind,
+        canonical_identity_digest,
+        event_at,
+        event_time_observation_id,
+        relationship_kind,
+        conversation_id,
+        turn_id,
+        relationship_observation_id,
+        origin,
+      ]
+    rationale: Canonical identities derived only from allowlisted metadata and pseudonymous relationships.
+  - table: model_call_observations
+    classification: structured_monitoring
+    columns:
+      [
+        id,
+        model_call_id,
+        source_id,
+        source_contract_version,
+        identity_version,
+        identity_kind,
+        identity_digest,
+        event_at,
+        event_provenance_observed_at,
+        event_quality,
+        event_priority,
+        observed_at,
+        origin,
+      ]
+    rationale: Typed source evidence identity and provenance; raw source payloads have no column.
+  - table: model_call_observation_relationships
+    classification: structured_monitoring
+    columns:
+      [
+        observation_id,
+        model_call_id,
+        relationship_kind,
+        conversation_id,
+        turn_id,
+        provenance_observed_at,
+        quality,
+        source_priority,
+      ]
+    rationale: Typed relationship evidence constrained to canonical pseudonymous identifiers.
+  - table: model_call_observation_fields
+    classification: structured_monitoring
+    columns:
+      [
+        observation_id,
+        field_id,
+        text_value,
+        integer_value,
+        provenance_observed_at,
+        quality,
+        source_priority,
+      ]
+    rationale: Values are admitted only under registered field IDs and decoded by the closed storage codec.
+  - table: model_call_projection_fields
+    classification: operational_metadata
+    columns: [model_call_id, field_id, observation_id]
+    rationale: Join metadata selecting the winning reviewed observation for each catalog field.
+  - table: source_checkpoints
+    classification: operational_metadata
+    columns:
+      [
+        source_id,
+        source_contract_version,
+        checkpoint_kind,
+        generation,
+        offset_bytes,
+        fingerprint_digest,
+        updated_at,
+      ]
+    rationale: Bounded local progress and sanitized fingerprint state; no file path is stored.
+  - table: source_health
+    classification: operational_metadata
+    columns:
+      [
+        source_id,
+        source_contract_version,
+        status,
+        last_accepted_at,
+        last_error_code,
+        last_error_occurred_at,
+        updated_at,
+      ]
+    rationale: Closed source state and SafeErrorCode values without raw error text.
+  - table: source_health_supported_fields
+    classification: operational_metadata
+    columns: [source_id, source_contract_version, field_id]
+    rationale: Closed source-to-catalog capability membership.
+  - table: domain_work
+    classification: operational_metadata
+    columns:
+      [
+        id,
+        work_kind,
+        model_call_id,
+        state,
+        created_at,
+        started_at,
+        completed_at,
+      ]
+    rationale: Durable rule-work lifecycle referencing a canonical call only.
+  - table: rules
+    classification: configuration
+    columns:
+      [
+        rule_id,
+        rule_version,
+        rule_kind,
+        enabled,
+        notify_max_n,
+        notify_all,
+        last_evaluated_at,
+        last_error_code,
+      ]
+    rationale: Closed built-in rule configuration and safe processing state.
+  - table: rule_evaluations
+    classification: structured_monitoring
+    columns:
+      [
+        id,
+        rule_id,
+        rule_version,
+        model_call_id,
+        matched,
+        reasoning_output_tokens,
+        pattern_n,
+        event_at,
+        source_quality,
+        evaluated_at,
+      ]
+    rationale: Numeric rule evidence and provenance only; no reasoning content.
+  - table: alerts
+    classification: structured_monitoring
+    columns:
+      [
+        id,
+        evaluation_id,
+        model_call_id,
+        rule_id,
+        rule_version,
+        reasoning_output_tokens,
+        pattern_n,
+        event_at,
+        source_quality,
+        created_at,
+      ]
+    rationale: Numeric alert evidence and references to reviewed local entities.
+  - table: app_settings
+    classification: configuration
+    columns:
+      [
+        singleton,
+        revision,
+        retention_days,
+        notifications_enabled,
+        notify_max_n,
+        notify_all,
+        locale,
+        login_autostart,
+        updated_at,
+      ]
+    rationale: Closed user preferences with no telemetry or account data.
+  - table: legacy_import_audit
+    classification: migration_audit
+    columns:
+      [
+        id,
+        source_fingerprint,
+        detected_schema,
+        imported_model_calls,
+        imported_conversations,
+        completed_at,
+      ]
+    rationale: Sanitized source fingerprint, schema kind, counts, and completion time; source paths are excluded.
+  - table: rule_definition_fingerprints
+    classification: operational_metadata
+    columns: [rule_id, rule_version, semantic_sha256]
+    rationale: Hashes closed rule definitions to detect semantic drift.
+  - table: action_outbox
+    classification: action_audit
+    columns:
+      [
+        id,
+        alert_id,
+        action_type,
+        parameter_schema_version,
+        idempotency_key_version,
+        idempotency_key_bytes,
+        state,
+        model,
+        reasoning_output_tokens,
+        pattern_n,
+        created_at,
+        not_before,
+        lease_generation,
+        lease_owner,
+        lease_expires_at,
+        started_at,
+        completed_at,
+        last_error_code,
+        suppression_reason,
+      ]
+    rationale: Closed system-notification parameters and durable execution state; content and source identifiers are absent.
+  - table: action_attempts
+    classification: action_audit
+    columns:
+      [
+        action_id,
+        attempt_number,
+        lease_generation,
+        state,
+        started_at,
+        completed_at,
+        safe_error_code,
+      ]
+    rationale: At-most-once attempt lifecycle with a closed safe error code.
+  - table: notification_coalescing_windows
+    classification: action_audit
+    columns: [id, conversation_id, leader_action_id, opened_at, closes_at]
+    rationale: Internal canonical conversation grouping and fixed UTC interval; source IDs and labels are excluded.
+  - table: notification_coalescing_members
+    classification: action_audit
+    columns: [action_id, window_id, role, joined_at]
+    rationale: Action-to-window membership and closed leader/follower role.
+  - table: model_call_dashboard_projection
+    classification: structured_monitoring
+    columns:
+      [
+        model_call_id,
+        event_at,
+        conversation_id,
+        turn_id,
+        temporal_class,
+        conversation_source_id,
+        thread_source_id,
+        model,
+        reasoning_effort,
+        input_tokens,
+        cached_input_tokens,
+        output_tokens,
+        reasoning_output_tokens,
+        client,
+        surface,
+      ]
+    rationale: Denormalized projection contains only reviewed Dashboard fields from the telemetry catalog.
+  - table: alert_evidence_provenance
+    classification: structured_monitoring
+    columns:
+      [alert_id, source_id, source_contract_version, observed_at, quality]
+    rationale: Closed provenance for numeric alert evidence.
+  - table: app_locale_initialization
+    classification: configuration
+    columns: [singleton, initialized]
+    rationale: One boolean recording completion of first-run locale selection.
+
+system_notification:
+  dynamic_parameter_fields: [model, reasoning_output_tokens, pattern_n]
+  rationale: The native template accepts only an optional validated model label and numeric pattern evidence.
+  forbidden_content:
+    en-US:
+      - conversation
+      - thread
+      - prompt
+      - response
+      - reasoning content
+      - session title
+      - tool data
+      - command
+      - path
+      - account identifier
+      - authentication material
+    zh-CN:
+      - conversation
+      - thread
+      - 提示词
+      - 回答
+      - reasoning 内容
+      - 会话名称
+      - 工具数据
+      - 命令
+      - 路径
+      - 账户标识符
+      - 认证材料

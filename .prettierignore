@@ -1,0 +1,13 @@
+target/
+**/gen/schemas/
+node_modules/
+web/dist/
+web/src/api/schema.d.ts
+web/playwright-report/
+web/test-results/
+fixtures/otlp/**/*.bin
+fixtures/otlp/**/*.gz
+fixtures/otlp/malformed.json
+docs/reference/telemetry-sources.md
+Cargo.lock
+pnpm-lock.yaml

@@ -1,0 +1,28 @@
+version: 1
+sources:
+  - id: otlp-logs
+    contract_version: 1
+    status: full-v1
+    capabilities:
+      - 已完成调用的 token 元数据
+      - 模型和推理强度
+      - 会话标识
+      - 来源健康状态
+  - id: legacy-import
+    contract_version: 1
+    status: full-v1
+    capabilities:
+      - 历史已完成调用的 token 元数据
+      - 推断的模型和推理强度
+      - 会话标识和生命周期元数据
+      - 隐私安全的导入审计
+  - id: codex-sessions
+    contract_version: 1
+    status: reserved-unregistered
+    capabilities:
+      - 未来的轮次关系
+      - 检查点
+      - 会话元数据
+notes:
+  - "session_index.jsonl 是可选的只读标签解析器，不属于遥测来源。"
+  - "解析得到的会话名称绝不会复制到持久化监控表。"

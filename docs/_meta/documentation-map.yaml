@@ -1,0 +1,567 @@
+version: 2
+
+documents:
+  - id: pull-request-template
+    path: .github/PULL_REQUEST_TEMPLATE.md
+    category: fixed-entry
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: fixed-entry
+
+  - id: root-readme-zh
+    path: README.md
+    category: user
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: fixed-entry
+
+  - id: root-readme-en
+    path: README.en.md
+    category: user
+    language: en-US
+    authority_language: zh-CN
+    translation_of: README.md
+    historical: mutable
+    navigation: fixed-entry
+
+  - id: root-privacy-zh
+    path: PRIVACY.zh-CN.md
+    category: user
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: fixed-entry
+
+  - id: root-privacy-en
+    path: PRIVACY.md
+    category: user
+    language: en-US
+    authority_language: zh-CN
+    translation_of: PRIVACY.zh-CN.md
+    historical: mutable
+    navigation: fixed-entry
+
+  - id: docs-index
+    path: docs/index.md
+    category: navigation
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: architecture-documents
+    glob: docs/architecture/*.md
+    category: architecture
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: development-documents
+    glob: docs/development/*.md
+    category: development
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: domain-documents
+    glob: docs/domain/*.md
+    category: domain
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: how-to-documents
+    glob: docs/how-to/*.md
+    category: how-to
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-installation-zh
+    path: docs/user/installation.zh-CN.md
+    category: user
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-installation-en
+    path: docs/user/installation.md
+    category: user
+    language: en-US
+    authority_language: zh-CN
+    translation_of: docs/user/installation.zh-CN.md
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-upgrade-zh
+    path: docs/user/upgrade.zh-CN.md
+    category: user
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-upgrade-en
+    path: docs/user/upgrade.md
+    category: user
+    language: en-US
+    authority_language: zh-CN
+    translation_of: docs/user/upgrade.zh-CN.md
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-uninstall-zh
+    path: docs/user/uninstall.zh-CN.md
+    category: user
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-uninstall-en
+    path: docs/user/uninstall.md
+    category: user
+    language: en-US
+    authority_language: zh-CN
+    translation_of: docs/user/uninstall.zh-CN.md
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-troubleshooting-zh
+    path: docs/user/troubleshooting.zh-CN.md
+    category: user
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: user-troubleshooting-en
+    path: docs/user/troubleshooting.md
+    category: user
+    language: en-US
+    authority_language: zh-CN
+    translation_of: docs/user/troubleshooting.zh-CN.md
+    historical: mutable
+    navigation: docs-index
+
+  - id: telemetry-field-reference-document
+    path: docs/reference/telemetry-fields.md
+    category: generated-reference
+    language: zh-CN
+    authority_language: zh-CN
+    generator: telemetry-field-reference
+    historical: mutable
+    navigation: docs-index
+
+  - id: telemetry-source-reference-document
+    path: docs/reference/telemetry-sources.md
+    category: generated-reference
+    language: zh-CN
+    authority_language: zh-CN
+    generator: telemetry-source-reference
+    historical: mutable
+    navigation: docs-index
+
+  - id: database-schema-reference-document
+    path: docs/reference/database-schema.md
+    category: generated-reference
+    language: zh-CN
+    authority_language: zh-CN
+    generator: database-schema-reference
+    historical: mutable
+    navigation: docs-index
+
+  - id: adr-index
+    path: docs/decisions/README.md
+    category: decision
+    language: zh-CN
+    authority_language: zh-CN
+    historical: mutable
+    navigation: docs-index
+
+  - id: adr-0001-history
+    path: docs/decisions/0001-rust-tauri-react-stack.md
+    category: decision
+    language: en-US
+    authority_language: en-US
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0001-zh
+    path: docs/decisions/0001-rust-tauri-react-stack.zh-CN.md
+    category: decision
+    language: zh-CN
+    authority_language: en-US
+    translation_of: docs/decisions/0001-rust-tauri-react-stack.md
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0002-history
+    path: docs/decisions/0002-single-user-resident-process.md
+    category: decision
+    language: en-US
+    authority_language: en-US
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0002-zh
+    path: docs/decisions/0002-single-user-resident-process.zh-CN.md
+    category: decision
+    language: zh-CN
+    authority_language: en-US
+    translation_of: docs/decisions/0002-single-user-resident-process.md
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0003-history
+    path: docs/decisions/0003-separate-otlp-dashboard-listeners.md
+    category: decision
+    language: en-US
+    authority_language: en-US
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0003-zh
+    path: docs/decisions/0003-separate-otlp-dashboard-listeners.zh-CN.md
+    category: decision
+    language: zh-CN
+    authority_language: en-US
+    translation_of: docs/decisions/0003-separate-otlp-dashboard-listeners.md
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0004-history
+    path: docs/decisions/0004-browser-first-http-dashboard.md
+    category: decision
+    language: en-US
+    authority_language: en-US
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0004-zh
+    path: docs/decisions/0004-browser-first-http-dashboard.zh-CN.md
+    category: decision
+    language: zh-CN
+    authority_language: en-US
+    translation_of: docs/decisions/0004-browser-first-http-dashboard.md
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0005-history
+    path: docs/decisions/0005-sqlite-writer-append-only-migrations.md
+    category: decision
+    language: en-US
+    authority_language: en-US
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0005-zh
+    path: docs/decisions/0005-sqlite-writer-append-only-migrations.zh-CN.md
+    category: decision
+    language: zh-CN
+    authority_language: en-US
+    translation_of: docs/decisions/0005-sqlite-writer-append-only-migrations.md
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0006-history
+    path: docs/decisions/0006-typed-privacy-action-registries.md
+    category: decision
+    language: en-US
+    authority_language: en-US
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0006-zh
+    path: docs/decisions/0006-typed-privacy-action-registries.zh-CN.md
+    category: decision
+    language: zh-CN
+    authority_language: en-US
+    translation_of: docs/decisions/0006-typed-privacy-action-registries.md
+    historical: immutable
+    navigation: adr-index
+
+  - id: adr-0007
+    path: docs/decisions/0007-workspace-crate-boundaries.md
+    category: decision
+    language: zh-CN
+    authority_language: zh-CN
+    historical: immutable
+    navigation: adr-index
+
+generated:
+  - id: telemetry-field-reference
+    authority: docs/_meta/telemetry-fields.yaml
+    outputs:
+      - docs/reference/telemetry-fields.md
+    command: node scripts/generate-telemetry-fields.mjs --persistence-manifest crates/codex-monitor-core/telemetry-persistence-fields.yaml
+    check: node scripts/generate-telemetry-fields.mjs --check --persistence-manifest crates/codex-monitor-core/telemetry-persistence-fields.yaml
+
+  - id: telemetry-source-reference
+    authority: docs/_meta/telemetry-sources.yaml
+    outputs:
+      - docs/reference/telemetry-sources.md
+    command: node scripts/generate-references.mjs
+    check: node scripts/generate-references.mjs --check
+
+  - id: openapi-typescript-client
+    authority: api/openapi.yaml
+    outputs:
+      - web/src/api/schema.d.ts
+    command: pnpm --dir web generate:api
+    check: pnpm check:api
+
+  - id: database-schema-reference
+    authority: crates/codex-monitor-storage/migrations
+    outputs:
+      - docs/reference/database-schema.md
+    command: node scripts/generate-database-schema.mjs
+    check: node scripts/generate-database-schema.mjs --check
+
+mappings:
+  - id: workspace-and-toolchain
+    globs:
+      - Cargo.toml
+      - rust-toolchain.toml
+      - package.json
+      - pnpm-workspace.yaml
+      - .github/workflows/**
+    required:
+      - docs/architecture/system-overview.md
+      - docs/development/commands.md
+    optional:
+      - docs/development/testing.md
+      - docs/development/security-and-privacy-audits.md
+    checks:
+      - pnpm verify
+
+  - id: core-domain
+    globs:
+      - crates/codex-monitor-core/**
+    required:
+      - docs/domain/monitoring-model.md
+      - docs/reference/telemetry-fields.md
+    optional:
+      - PRIVACY.md
+      - PRIVACY.zh-CN.md
+    generators:
+      - telemetry-field-reference
+    checks:
+      - cargo test -p codex-monitor-core
+
+  - id: telemetry-field-catalog
+    globs:
+      - docs/_meta/telemetry-fields.yaml
+      - crates/codex-monitor-core/telemetry-persistence-fields.yaml
+      - scripts/generate-telemetry-fields.mjs
+      - scripts/tests/telemetry-fields.test.mjs
+    required:
+      - docs/reference/telemetry-fields.md
+      - docs/domain/monitoring-model.md
+    generators:
+      - telemetry-field-reference
+    checks:
+      - node scripts/generate-telemetry-fields.mjs --check --persistence-manifest crates/codex-monitor-core/telemetry-persistence-fields.yaml
+      - node --test scripts/tests/telemetry-fields.test.mjs
+
+  - id: engine-runtime
+    globs:
+      - crates/codex-monitor-engine/**
+    required:
+      - docs/architecture/system-overview.md
+      - docs/reference/database-schema.md
+    optional:
+      - docs/reference/telemetry-sources.md
+      - PRIVACY.md
+      - PRIVACY.zh-CN.md
+    checks:
+      - cargo test -p codex-monitor-engine
+
+  - id: database-schema
+    globs:
+      - crates/codex-monitor-storage/migrations/**
+      - scripts/generate-database-schema.mjs
+      - scripts/tests/database-schema-generation.test.mjs
+    required:
+      - docs/reference/database-schema.md
+      - docs/development/documentation-workflow.md
+    optional:
+      - docs/how-to/add-database-migration.md
+      - docs/architecture/system-overview.md
+    generators:
+      - database-schema-reference
+    checks:
+      - node scripts/generate-database-schema.mjs --check
+      - node --test scripts/tests/database-schema-generation.test.mjs
+
+  - id: desktop-host
+    globs:
+      - apps/desktop/**
+    required:
+      - docs/architecture/process-lifecycle.md
+    optional:
+      - docs/architecture/system-overview.md
+    checks:
+      - cargo check -p codex-monitor-desktop
+
+  - id: packaged-user-behavior
+    globs:
+      - apps/desktop/src-tauri/tauri.conf.json
+      - apps/desktop/src-tauri/src/startup.rs
+      - apps/desktop/src-tauri/src/lib.rs
+      - apps/desktop/src-tauri/src/autostart.rs
+      - apps/desktop/src-tauri/src/tray.rs
+      - apps/desktop/src-tauri/src/notification.rs
+      - crates/codex-monitor-storage/src/paths.rs
+      - crates/codex-monitor-storage/src/legacy_import.rs
+      - crates/codex-monitor-storage/src/legacy_import/**
+      - .github/workflows/*release*.yml
+      - .github/workflows/*release*.yaml
+      - .github/workflows/*artifact*.yml
+      - .github/workflows/*artifact*.yaml
+      - .github/workflows/*package*.yml
+      - .github/workflows/*package*.yaml
+      - scripts/*release*
+      - scripts/*package*
+      - scripts/installed-artifact-smoke.mjs
+    required:
+      - README.md
+      - README.en.md
+      - PRIVACY.md
+      - PRIVACY.zh-CN.md
+      - docs/user/installation.md
+      - docs/user/installation.zh-CN.md
+      - docs/user/upgrade.md
+      - docs/user/upgrade.zh-CN.md
+      - docs/user/uninstall.md
+      - docs/user/uninstall.zh-CN.md
+      - docs/user/troubleshooting.md
+      - docs/user/troubleshooting.zh-CN.md
+    optional:
+      - docs/index.md
+      - docs/development/commands.md
+      - docs/development/testing.md
+    checks:
+      - pnpm docs:check
+
+  - id: dashboard
+    globs:
+      - web/src/**
+      - web/index.html
+      - web/vite.config.ts
+    required:
+      - docs/architecture/system-overview.md
+    optional:
+      - docs/how-to/add-locale.md
+      - docs/development/testing.md
+    checks:
+      - pnpm --dir web lint
+      - pnpm --dir web test:unit
+
+  - id: openapi-contract
+    globs:
+      - api/openapi.yaml
+      - scripts/check-generated-api.mjs
+      - scripts/tests/generated-api.test.mjs
+      - web/src/api/schema.d.ts
+    required:
+      - docs/architecture/system-overview.md
+      - docs/development/documentation-workflow.md
+    optional:
+      - docs/how-to/add-telemetry-field.md
+      - docs/development/testing.md
+    generators:
+      - openapi-typescript-client
+    checks:
+      - pnpm check:api
+
+  - id: repository-fixture-privacy
+    globs:
+      - fixtures/**
+      - contracts/legacy-otlp-v1*.json
+      - scripts/check-repository-fixtures.mjs
+      - scripts/tests/repository-fixtures.test.mjs
+    required:
+      - docs/development/documentation-workflow.md
+      - docs/development/legacy-contract-cutover.md
+      - docs/development/fixtures.md
+    optional:
+      - docs/development/testing.md
+      - docs/development/security-and-privacy-audits.md
+      - PRIVACY.md
+      - PRIVACY.zh-CN.md
+    checks:
+      - node scripts/check-repository-fixtures.mjs
+      - node --test scripts/tests/repository-fixtures.test.mjs
+
+  - id: atomic-runtime-cutover
+    globs:
+      - pyproject.toml
+      - run.ps1
+      - src/codex_monitor/**
+      - tests/test_server.py
+      - tests/legacy_contract/**
+      - scripts/check-codex-otel.ps1
+      - scripts/install-codex-otel-snippet.ps1
+      - scripts/smoke-test-json.ps1
+      - scripts/check-no-legacy-runtime.mjs
+      - scripts/tests/no-legacy-runtime.test.mjs
+    required:
+      - docs/development/legacy-contract-cutover.md
+      - docs/architecture/system-overview.md
+    optional:
+      - docs/development/commands.md
+      - docs/development/testing.md
+    checks:
+      - pnpm check:no-legacy-runtime
+      - node --test scripts/tests/no-legacy-runtime.test.mjs
+
+  - id: source-catalog
+    globs:
+      - docs/_meta/telemetry-sources.yaml
+    required:
+      - docs/reference/telemetry-sources.md
+    generators:
+      - telemetry-source-reference
+    checks:
+      - node scripts/generate-references.mjs --check
+
+  - id: documentation-governance
+    globs:
+      - scripts/check-docs.mjs
+      - scripts/generate-references.mjs
+      - scripts/generate-telemetry-fields.mjs
+      - scripts/tests/**
+      - scripts/read-docs-impact.mjs
+      - docs/_meta/documentation-map.yaml
+    required:
+      - docs/development/documentation-workflow.md
+    optional:
+      - docs/index.md
+    checks:
+      - pnpm docs:check
+
+  - id: security-and-privacy-audits
+    globs:
+      - .gitleaks.toml
+      - deny.toml
+      - scripts/check-frontend-licenses.mjs
+      - scripts/check-privacy-surfaces.mjs
+      - docs/_meta/privacy-surfaces.yaml
+    required:
+      - docs/development/security-and-privacy-audits.md
+    optional:
+      - docs/development/commands.md
+      - docs/development/testing.md
+      - PRIVACY.md
+      - PRIVACY.zh-CN.md
+    checks:
+      - pnpm check:privacy
+      - pnpm audit:security

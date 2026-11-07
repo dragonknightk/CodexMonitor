@@ -1,0 +1,1979 @@
+openapi: 3.1.0
+info:
+  title: CodexMonitor Local API
+  version: 1.0.0
+  summary: Authenticated loopback API for the CodexMonitor browser Dashboard.
+  description: >-
+    This file is the sole authority for /api/v1 HTTP DTOs. The server binds only
+    to loopback, uses a process-local HttpOnly session cookie, emits no CORS
+    allowance, and requires the current CSRF proof for every authenticated
+    state-changing operation. Error responses contain stable codes and structured
+    parameters; localized or implementation messages are intentionally absent.
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+servers:
+  - url: /
+    description: Current authenticated Dashboard origin
+security:
+  - localSession: []
+x-codex-monitor-security:
+  network_boundary: loopback_only
+  accepted_host: current_listener_authority
+  cors: disabled
+  state_change_origin: same_origin
+  state_changing_methods: [DELETE, PATCH, POST, PUT]
+  max_json_body_bytes: 16384
+  host_rejection_status: 403
+  description: >-
+    Every request is rejected before routing unless Host names the active
+    127.0.0.1 listener authority. The server emits no
+    Access-Control-Allow-Origin header. Authenticated state-changing operations
+    additionally require a same-origin request and the current CSRF proof.
+x-codex-monitor-validation-order:
+  [host, route, session, origin, csrf, media_type, body_size, schema, handler]
+tags:
+  - name: Session
+  - name: Health
+  - name: Capabilities
+  - name: Model calls
+  - name: Conversations
+  - name: Summaries
+  - name: Sources
+  - name: Alerts
+  - name: Settings
+  - name: Events
+
+paths:
+  /api/v1/session/bootstrap:
+    get:
+      operationId: bootstrapSession
+      tags: [Session]
+      summary: Consume a one-time bootstrap token and establish a local session.
+      description: >-
+        This is the only unauthenticated /api/v1 operation. Host validation runs
+        before token lookup or consumption. A valid unexpired token is consumed
+        exactly once, a process-local session cookie is set, and the browser is
+        redirected to a clean URL that contains no token. Invalid, expired and
+        previously consumed tokens intentionally return the same error code.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/BootstrapToken"
+      responses:
+        "303":
+          description: Session established; redirect to the clean Dashboard URL.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+            Location:
+              $ref: "#/components/headers/CleanDashboardLocation"
+            Referrer-Policy:
+              $ref: "#/components/headers/NoReferrer"
+            Set-Cookie:
+              $ref: "#/components/headers/BootstrapSessionCookie"
+        "401":
+          $ref: "#/components/responses/BootstrapRejected"
+        "403":
+          $ref: "#/components/responses/BootstrapHostRejected"
+        "503":
+          $ref: "#/components/responses/BootstrapServiceUnavailable"
+
+  /api/v1/session:
+    get:
+      operationId: getCurrentSession
+      tags: [Session]
+      summary: Read current authenticated session and in-memory CSRF metadata.
+      responses:
+        "200":
+          description: Current process-local browser session.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/health:
+    get:
+      operationId: getHealth
+      tags: [Health]
+      summary: Read resident engine and listener health.
+      responses:
+        "200":
+          description: Privacy-safe health snapshot and SSE replay boundary.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthSnapshot"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/capabilities:
+    get:
+      operationId: getCapabilities
+      tags: [Capabilities]
+      summary: Read bounded API, source, rule, locale, and platform capabilities.
+      responses:
+        "200":
+          description: Capabilities registered for the current process.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Capabilities"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/model-calls:
+    get:
+      operationId: listModelCalls
+      tags: [Model calls]
+      summary: Query canonical model calls using deterministic cursor pagination.
+      description: >-
+        Cursors are endpoint-specific exclusive keyset boundaries bound to the
+        normalized filters and sort. Reusing one with different query state
+        returns invalid_cursor. The selected primary sort and its documented
+        tie-breakers provide a total order across concurrent reads.
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PageLimit"
+        - $ref: "#/components/parameters/ConversationFilter"
+        - $ref: "#/components/parameters/ModelFilter"
+        - $ref: "#/components/parameters/SourceFilter"
+        - $ref: "#/components/parameters/ClientFilter"
+        - $ref: "#/components/parameters/FromFilter"
+        - $ref: "#/components/parameters/ToFilter"
+        - $ref: "#/components/parameters/AlertFilter"
+        - $ref: "#/components/parameters/TemporalClassFilter"
+        - $ref: "#/components/parameters/ModelCallSort"
+      responses:
+        "200":
+          description: One stable page of canonical model calls.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelCallPage"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/conversations:
+    get:
+      operationId: listConversations
+      tags: [Conversations]
+      summary: Query conversations and ephemeral local display names.
+      description: >-
+        resolved_display_name is resolved only for this authenticated query and
+        must not be persisted or cached by the client. Results use the total
+        order last_observed_at descending, then id descending. Cursors are
+        exclusive and bound to this endpoint and its normalized filters.
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PageLimit"
+        - name: query
+          in: query
+          required: false
+          description: Bounded match against conversation/thread identity or resolved name.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 256
+        - $ref: "#/components/parameters/SourceFilter"
+        - $ref: "#/components/parameters/FromFilter"
+        - $ref: "#/components/parameters/ToFilter"
+      responses:
+        "200":
+          description: Deterministic conversation page.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationPage"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/summaries:
+    get:
+      operationId: getModelCallSummary
+      tags: [Summaries]
+      summary: Aggregate the exact model-call filter set used by history.
+      parameters:
+        - $ref: "#/components/parameters/ConversationFilter"
+        - $ref: "#/components/parameters/ModelFilter"
+        - $ref: "#/components/parameters/SourceFilter"
+        - $ref: "#/components/parameters/ClientFilter"
+        - $ref: "#/components/parameters/FromFilter"
+        - $ref: "#/components/parameters/ToFilter"
+        - $ref: "#/components/parameters/AlertFilter"
+        - $ref: "#/components/parameters/TemporalClassFilter"
+      responses:
+        "200":
+          description: Filtered counts and completeness-aware token aggregates.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelCallSummary"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/sources:
+    get:
+      operationId: listSources
+      tags: [Sources]
+      summary: Read registered source and receiver diagnostics.
+      responses:
+        "200":
+          description: Bounded source-health list.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceList"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/sources/{source_id}/retry:
+    post:
+      operationId: retrySource
+      tags: [Sources]
+      summary: Request a bounded retry for a supported local receiver.
+      parameters:
+        - $ref: "#/components/parameters/SourceIdPath"
+        - $ref: "#/components/parameters/CsrfProof"
+      responses:
+        "202":
+          description: Retry accepted; returned state is not an optimistic success claim.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceHealth"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/RequestRejected"
+        "404":
+          $ref: "#/components/responses/SourceNotFound"
+        "409":
+          $ref: "#/components/responses/SourceRetryConflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/alerts:
+    get:
+      operationId: listAlerts
+      tags: [Alerts]
+      summary: Query durable reasoning-pattern evidence and independent action state.
+      description: >-
+        Results use the total order created_at descending, then id descending.
+        Cursors are exclusive and bound to this endpoint and its normalized
+        filters.
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PageLimit"
+        - $ref: "#/components/parameters/ConversationFilter"
+        - name: model_call_id
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/OpaqueId"
+        - name: action_state
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/ActionState"
+        - $ref: "#/components/parameters/FromFilter"
+        - $ref: "#/components/parameters/ToFilter"
+      responses:
+        "200":
+          description: Deterministically ordered alert page.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertPage"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/settings:
+    get:
+      operationId: getSettings
+      tags: [Settings]
+      summary: Read the current atomic settings document.
+      description: >-
+        On the first read only, the server resolves and persists the best
+        supported locale from Accept-Language. Later reads return the persisted
+        locale regardless of the requesting browser language.
+      parameters:
+        - name: Accept-Language
+          in: header
+          required: false
+          description: Browser language preferences used only for first-run locale detection.
+          schema:
+            type: string
+            maxLength: 512
+      responses:
+        "200":
+          description: Current settings and revision.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+            ETag:
+              $ref: "#/components/headers/SettingsRevision"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsDocument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    put:
+      operationId: replaceSettings
+      tags: [Settings]
+      summary: Validate and atomically replace all user-configurable settings.
+      x-codex-monitor-max-body-bytes: 16384
+      description: >-
+        The engine validates the entire document and performs no partial write.
+        If-Match prevents a stale Dashboard from overwriting a newer settings
+        revision. No restart is required for settings that the capability document
+        marks as runtime-applicable.
+      parameters:
+        - $ref: "#/components/parameters/CsrfProof"
+        - $ref: "#/components/parameters/IfMatchRevision"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Settings"
+      responses:
+        "200":
+          description: Fully validated and applied settings document.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+            ETag:
+              $ref: "#/components/headers/SettingsRevision"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsDocument"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/RequestRejected"
+        "412":
+          $ref: "#/components/responses/RevisionConflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "428":
+          $ref: "#/components/responses/PreconditionRequired"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/v1/events:
+    get:
+      operationId: streamEvents
+      tags: [Events]
+      summary: Stream authenticated incremental Dashboard events.
+      description: >-
+        The browser sends the same-origin session cookie. A client must perform a
+        full REST resynchronization before opening or reopening this stream. It
+        should obtain health.stream_cursor before the REST reads and pass that
+        cursor as after_event_id so events concurrent with the reads are replayed.
+        The server emits terminal stream-control with overflow, missed_event, or
+        server_restart when replay cannot be complete; the client must close,
+        resynchronize, and reconnect.
+      parameters:
+        - name: after_event_id
+          in: query
+          required: false
+          description: Opaque replay boundary returned by health.stream_cursor.
+          schema:
+            $ref: "#/components/schemas/StreamCursor"
+      responses:
+        "200":
+          description: >-
+            SSE event types are model-call, source-health, alert, settings, and
+            stream-control. Each data field is a JSON object matching the named
+            schema in x-sse-event-schemas.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-cache
+            X-Accel-Buffering:
+              schema:
+                type: string
+                const: "no"
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              x-sse-event-schemas:
+                model-call:
+                  $ref: "#/components/schemas/ModelCallEvent"
+                source-health:
+                  $ref: "#/components/schemas/SourceHealthEvent"
+                alert:
+                  $ref: "#/components/schemas/AlertEvent"
+                settings:
+                  $ref: "#/components/schemas/SettingsEvent"
+                stream-control:
+                  $ref: "#/components/schemas/StreamControlEvent"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/HostRejected"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+components:
+  securitySchemes:
+    localSession:
+      type: apiKey
+      in: cookie
+      name: codex_monitor_session
+      description: Random process-local HttpOnly SameSite=Strict session cookie.
+
+  headers:
+    NoStore:
+      description: Protected local data must not be stored by browser caches.
+      schema:
+        type: string
+        const: no-store
+    CleanDashboardLocation:
+      description: Relative clean Dashboard URL with no bootstrap token.
+      schema:
+        type: string
+        const: /
+    NoReferrer:
+      description: Prevent the bootstrap URL from being sent as a referrer.
+      schema:
+        type: string
+        const: no-referrer
+    BootstrapSessionCookie:
+      description: >-
+        Process-local random session cookie. The value is never returned in a
+        response body and the serialized cookie has Path=/, HttpOnly and
+        SameSite=Strict attributes with no persistent expiry.
+      schema:
+        type: string
+        minLength: 64
+        maxLength: 512
+        pattern: "^codex_monitor_session=[A-Za-z0-9_-]+; Path=/; HttpOnly; SameSite=Strict$"
+    SettingsRevision:
+      description: Strong quoted entity tag for the returned settings revision.
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 130
+        pattern: '^"[A-Za-z0-9_-]{1,128}"$'
+    BootstrapChallenge:
+      description: Challenge identifying the failed one-time bootstrap credential.
+      schema:
+        type: string
+        const: 'CodexMonitorBootstrap realm="local-dashboard"'
+    SessionChallenge:
+      description: Challenge identifying the required process-local session.
+      schema:
+        type: string
+        const: 'CodexMonitorSession realm="local-dashboard"'
+
+  parameters:
+    BootstrapToken:
+      name: token
+      in: query
+      required: true
+      description: >-
+        Short-lived one-time token created in memory by the resident host. The
+        server never echoes this value and consumes it only after Host validation.
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 256
+        pattern: "^[A-Za-z0-9_-]+$"
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: >-
+        Opaque exclusive keyset boundary; never a raw local identifier. It is
+        versioned and cryptographically bound to the endpoint, normalized
+        filters and sort. Any mismatch returns invalid_cursor.
+      schema:
+        $ref: "#/components/schemas/PageCursor"
+    PageLimit:
+      name: limit
+      in: query
+      required: false
+      description: Bounded page size.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    ConversationFilter:
+      name: conversation
+      in: query
+      required: false
+      description: Exact conversation/thread identity or bounded resolved-name query.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    ModelFilter:
+      name: model
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    SourceFilter:
+      name: source_id
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/SourceId"
+    ClientFilter:
+      name: client
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    FromFilter:
+      name: from
+      in: query
+      required: false
+      description: Inclusive UTC lower bound.
+      schema:
+        $ref: "#/components/schemas/UtcTimestamp"
+    ToFilter:
+      name: to
+      in: query
+      required: false
+      description: Exclusive UTC upper bound.
+      schema:
+        $ref: "#/components/schemas/UtcTimestamp"
+    AlertFilter:
+      name: alert
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [any, matched, none]
+        default: any
+    TemporalClassFilter:
+      name: temporal_class
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/TemporalClass"
+    ModelCallSort:
+      name: sort
+      in: query
+      required: false
+      description: >-
+        event_at sorts use id in the same direction as a stable tie-breaker.
+        Token sorts place known values first in descending order, then use
+        event_at descending and id descending; unknown token values sort last.
+      schema:
+        type: string
+        enum:
+          - event_at_desc
+          - event_at_asc
+          - input_tokens_desc
+          - output_tokens_desc
+          - reasoning_tokens_desc
+          - total_tokens_desc
+        default: event_at_desc
+    SourceIdPath:
+      name: source_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/SourceId"
+    CsrfProof:
+      name: X-CodexMonitor-CSRF
+      in: header
+      required: true
+      description: Current in-memory proof returned by /api/v1/session.
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 256
+        pattern: "^[A-Za-z0-9_-]+$"
+    IfMatchRevision:
+      name: If-Match
+      in: header
+      required: true
+      description: Quoted revision value from the current SettingsDocument.
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 130
+        pattern: '^"[A-Za-z0-9_-]{1,128}"$'
+
+  responses:
+    InvalidQuery:
+      description: Query or cursor is invalid.
+      x-error-codes: [validation_failed, invalid_cursor, invalid_time_range]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InvalidQueryErrorResponse"
+    ValidationFailed:
+      description: The full request failed schema or range validation; nothing changed.
+      x-error-codes: [validation_failed]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationFailedErrorResponse"
+    BootstrapRejected:
+      description: The bootstrap token is invalid, expired or already consumed.
+      x-error-codes: [bootstrap_invalid]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+        Referrer-Policy:
+          $ref: "#/components/headers/NoReferrer"
+        WWW-Authenticate:
+          $ref: "#/components/headers/BootstrapChallenge"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BootstrapRejectedErrorResponse"
+    BootstrapHostRejected:
+      description: Host does not name the active loopback Dashboard listener.
+      x-error-codes: [forbidden_host]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+        Referrer-Policy:
+          $ref: "#/components/headers/NoReferrer"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HostRejectedErrorResponse"
+    BootstrapServiceUnavailable:
+      description: Process-local bootstrap state is temporarily unavailable.
+      x-error-codes: [internal_unavailable]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+        Referrer-Policy:
+          $ref: "#/components/headers/NoReferrer"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BootstrapServiceUnavailableErrorResponse"
+    Unauthorized:
+      description: No current process-local Dashboard session.
+      x-error-codes: [unauthorized]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+        WWW-Authenticate:
+          $ref: "#/components/headers/SessionChallenge"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnauthorizedErrorResponse"
+    HostRejected:
+      description: Host does not name the active loopback Dashboard listener.
+      x-error-codes: [forbidden_host]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HostRejectedErrorResponse"
+    RequestRejected:
+      description: Host, same-origin policy or CSRF proof was rejected; nothing changed.
+      x-error-codes: [forbidden_host, forbidden_origin, csrf_invalid]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RequestRejectedErrorResponse"
+    SourceNotFound:
+      description: Registered source was not found.
+      x-error-codes: [source_not_found]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SourceNotFoundErrorResponse"
+    SourceRetryConflict:
+      description: The registered source cannot currently accept a retry.
+      x-error-codes: [source_retry_unavailable]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SourceRetryConflictErrorResponse"
+    RevisionConflict:
+      description: If-Match names a stale settings revision; nothing changed.
+      x-error-codes: [revision_conflict]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RevisionConflictErrorResponse"
+    UnsupportedMediaType:
+      description: Settings replacement requires application/json.
+      x-error-codes: [unsupported_media_type]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnsupportedMediaTypeErrorResponse"
+    PayloadTooLarge:
+      description: The JSON request body exceeds the fixed Dashboard limit.
+      x-error-codes: [payload_too_large]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PayloadTooLargeErrorResponse"
+    PreconditionRequired:
+      description: A current quoted If-Match settings revision is required.
+      x-error-codes: [precondition_required]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PreconditionRequiredErrorResponse"
+    ServiceUnavailable:
+      description: A privacy-safe internal dependency is temporarily unavailable.
+      x-error-codes: [storage_unavailable, internal_unavailable]
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServiceUnavailableErrorResponse"
+
+  schemas:
+    UtcTimestamp:
+      type: string
+      format: date-time
+      description: RFC 3339 timestamp normalized to UTC.
+    OpaqueId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: "^[A-Za-z0-9._:-]+$"
+    SourceId:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    PageCursor:
+      type: string
+      minLength: 1
+      maxLength: 512
+      pattern: "^[A-Za-z0-9_-]+$"
+    StreamCursor:
+      type: string
+      minLength: 1
+      maxLength: 512
+      pattern: "^[A-Za-z0-9_-]+$"
+    TokenCount:
+      type: integer
+      minimum: 0
+      maximum: 1000000000000000
+      description: Privacy-safe token count within the core domain bound.
+    PositivePatternN:
+      type: integer
+      minimum: 1
+      maximum: 1000000000000000
+    NullableTokenCount:
+      oneOf:
+        - $ref: "#/components/schemas/TokenCount"
+        - type: "null"
+    ReasoningEffort:
+      type: string
+      enum: [none, minimal, low, medium, high, xhigh, max, ultra]
+    TemporalClass:
+      type: string
+      enum: [realtime, historical]
+    EvidenceQuality:
+      type: string
+      enum: [direct, inferred]
+    SourceHealthStatus:
+      type: string
+      enum: [starting, healthy, degraded, unavailable, stopped]
+    ReceiverBindState:
+      type: string
+      enum: [starting, bound, retrying, conflict, stopped]
+    ActionState:
+      type: string
+      enum: [pending, started, completed, failed, suppressed, unavailable]
+    SafeSourceErrorCode:
+      type: string
+      enum:
+        - otlp_bind_failed
+        - otlp_invalid_content_type
+        - otlp_compressed_body_too_large
+        - otlp_decompressed_body_too_large
+        - otlp_gzip_decode_failed
+        - otlp_json_decode_failed
+        - otlp_protobuf_decode_failed
+        - otlp_decode_timed_out
+        - persistence_commit_failed
+        - source_checkpoint_invalid
+        - source_unavailable
+        - internal_queue_closed
+    ActionErrorCode:
+      type: string
+      enum:
+        - invalid_parameters
+        - permission_denied
+        - notification_unavailable
+        - notification_dispatch_failed
+        - indeterminate_after_crash
+        - unknown_action_type
+        - internal_queue_closed
+    ActionSuppressionReason:
+      type: string
+      enum:
+        - notifications_disabled
+        - above_threshold
+        - permission_denied
+        - coalesced
+        - historical_event
+        - pre_outbox_upgrade
+    RuleErrorCode:
+      type: string
+      enum: [persistence_commit_failed, internal_queue_closed]
+    CheckpointCapability:
+      type: string
+      enum: [none, monotonic_file_offset_v1]
+    ApiErrorCode:
+      type: string
+      enum:
+        - bootstrap_invalid
+        - unauthorized
+        - forbidden_host
+        - forbidden_origin
+        - csrf_invalid
+        - validation_failed
+        - invalid_cursor
+        - invalid_time_range
+        - revision_conflict
+        - precondition_required
+        - unsupported_media_type
+        - payload_too_large
+        - source_not_found
+        - source_retry_unavailable
+        - storage_unavailable
+        - internal_unavailable
+    ValidationField:
+      type: string
+      enum:
+        - token
+        - cursor
+        - limit
+        - conversation
+        - query
+        - model
+        - source_id
+        - client
+        - from
+        - to
+        - alert
+        - temporal_class
+        - sort
+        - model_call_id
+        - action_state
+        - after_event_id
+        - csrf
+        - if_match
+        - request_body
+        - login_autostart
+        - system_notifications
+        - notify_max_n
+        - retention_days
+        - language
+    ValidationIssue:
+      type: object
+      additionalProperties: false
+      required: [field, reason]
+      properties:
+        field:
+          $ref: "#/components/schemas/ValidationField"
+        reason:
+          type: string
+          enum:
+            [required, invalid_format, out_of_range, unsupported, inconsistent]
+        minimum:
+          type: integer
+          minimum: -1000000000000000
+          maximum: 1000000000000000
+        maximum:
+          type: integer
+          minimum: -1000000000000000
+          maximum: 1000000000000000
+    ErrorParameters:
+      type: object
+      additionalProperties: false
+      maxProperties: 2
+      description: >-
+        Closed privacy-safe parameters for localized client rendering. Values
+        never contain raw identifiers, paths, payload excerpts or error text.
+      properties:
+        issues:
+          type: array
+          minItems: 1
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/ValidationIssue"
+        cursor_reason:
+          type: string
+          enum:
+            - malformed
+            - endpoint_mismatch
+            - filter_mismatch
+            - sort_mismatch
+            - version_unsupported
+        retry_reason:
+          type: string
+          enum: [unsupported, invalid_state]
+    ApiError:
+      type: object
+      additionalProperties: false
+      required: [code, params]
+      properties:
+        code:
+          $ref: "#/components/schemas/ApiErrorCode"
+        params:
+          $ref: "#/components/schemas/ErrorParameters"
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          $ref: "#/components/schemas/ApiError"
+    BootstrapRejectedErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: bootstrap_invalid
+    BootstrapServiceUnavailableErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: internal_unavailable
+    UnauthorizedErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: unauthorized
+    HostRejectedErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: forbidden_host
+    RequestRejectedErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      type: string
+                      enum: [forbidden_host, forbidden_origin, csrf_invalid]
+    InvalidQueryErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      type: string
+                      enum:
+                        [validation_failed, invalid_cursor, invalid_time_range]
+    ValidationFailedErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: validation_failed
+    SourceNotFoundErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: source_not_found
+    SourceRetryConflictErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: source_retry_unavailable
+    RevisionConflictErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: revision_conflict
+    UnsupportedMediaTypeErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: unsupported_media_type
+    PayloadTooLargeErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: payload_too_large
+    PreconditionRequiredErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      const: precondition_required
+    ServiceUnavailableErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - properties:
+            error:
+              allOf:
+                - $ref: "#/components/schemas/ApiError"
+                - properties:
+                    code:
+                      type: string
+                      enum: [storage_unavailable, internal_unavailable]
+
+    CurrentSession:
+      type: object
+      additionalProperties: false
+      required: [authenticated, csrf, expires_at]
+      properties:
+        authenticated:
+          type: boolean
+          const: true
+        csrf:
+          type: object
+          additionalProperties: false
+          required: [header_name, proof]
+          properties:
+            header_name:
+              type: string
+              const: X-CodexMonitor-CSRF
+            proof:
+              type: string
+              minLength: 32
+              maxLength: 256
+              pattern: "^[A-Za-z0-9_-]+$"
+        expires_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+
+    ListenerHealth:
+      type: object
+      additionalProperties: false
+      required: [host, port, state]
+      properties:
+        host:
+          type: string
+          const: 127.0.0.1
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        state:
+          type: string
+          enum: [starting, bound, stopped]
+    HealthSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        [api_version, status, dashboard_listener, stream_cursor, checked_at]
+      properties:
+        api_version:
+          type: string
+          const: v1
+        status:
+          type: string
+          enum: [starting, ready, degraded]
+        dashboard_listener:
+          $ref: "#/components/schemas/ListenerHealth"
+        stream_cursor:
+          $ref: "#/components/schemas/StreamCursor"
+        checked_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+
+    QueryCapabilities:
+      type: object
+      additionalProperties: false
+      required: [default_page_limit, max_page_limit, filters, sorts]
+      properties:
+        default_page_limit:
+          type: integer
+          const: 25
+        max_page_limit:
+          type: integer
+          const: 100
+        filters:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              [
+                conversation,
+                model,
+                source_id,
+                client,
+                from,
+                to,
+                alert,
+                temporal_class,
+              ]
+        sorts:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - event_at_desc
+              - event_at_asc
+              - input_tokens_desc
+              - output_tokens_desc
+              - reasoning_tokens_desc
+              - total_tokens_desc
+    SourceCapability:
+      type: object
+      additionalProperties: false
+      required:
+        - source_id
+        - contract_version
+        - supported_fields
+        - checkpoint_capability
+        - supports_retry
+      properties:
+        source_id:
+          $ref: "#/components/schemas/SourceId"
+        contract_version:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        supported_fields:
+          type: array
+          maxItems: 128
+          uniqueItems: true
+          items:
+            type: string
+            pattern: '^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$'
+        checkpoint_capability:
+          $ref: "#/components/schemas/CheckpointCapability"
+        supports_retry:
+          type: boolean
+    RuleCapability:
+      type: object
+      additionalProperties: false
+      required:
+        - rule_id
+        - rule_version
+        - enabled
+        - notify_max_n
+        - last_evaluated_at
+        - last_error_code
+      properties:
+        rule_id:
+          type: string
+          const: suspected-reasoning-limit-pattern
+        rule_version:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        enabled:
+          type: boolean
+        notify_max_n:
+          oneOf:
+            - type: integer
+              minimum: 1
+              maximum: 1000
+            - type: "null"
+          description: Null means every positive n is notification-eligible.
+        last_evaluated_at:
+          oneOf:
+            - $ref: "#/components/schemas/UtcTimestamp"
+            - type: "null"
+        last_error_code:
+          oneOf:
+            - $ref: "#/components/schemas/RuleErrorCode"
+            - type: "null"
+    PlatformCapabilities:
+      type: object
+      additionalProperties: false
+      required: [login_autostart, system_notifications, tray]
+      properties:
+        login_autostart:
+          type: boolean
+        system_notifications:
+          type: string
+          enum: [available, permission_required, unavailable]
+        tray:
+          type: string
+          enum: [available, unavailable]
+    Capabilities:
+      type: object
+      additionalProperties: false
+      required:
+        [api_version, query, locales, event_types, sources, rules, platform]
+      properties:
+        api_version:
+          type: string
+          const: v1
+        query:
+          $ref: "#/components/schemas/QueryCapabilities"
+        locales:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Locale"
+        event_types:
+          type: array
+          minItems: 5
+          uniqueItems: true
+          items:
+            type: string
+            enum: [model-call, source-health, alert, settings, stream-control]
+        sources:
+          type: array
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/SourceCapability"
+        rules:
+          type: array
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/RuleCapability"
+        platform:
+          $ref: "#/components/schemas/PlatformCapabilities"
+
+    ConversationRef:
+      type: object
+      additionalProperties: false
+      required: [id, source_id, thread_id, resolved_display_name]
+      properties:
+        id:
+          $ref: "#/components/schemas/OpaqueId"
+        source_id:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 256
+        thread_id:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 256
+        resolved_display_name:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 256
+          description: Ephemeral query-only label; clients must not persist it.
+    CanonicalFieldName:
+      type: string
+      enum:
+        - conversation
+        - turn
+        - event_at
+        - model
+        - reasoning_effort
+        - input_tokens
+        - cached_input_tokens
+        - output_tokens
+        - reasoning_output_tokens
+        - client
+        - surface
+    FieldSource:
+      type: object
+      additionalProperties: false
+      required:
+        [field, source_id, source_contract_version, observed_at, quality]
+      properties:
+        field:
+          $ref: "#/components/schemas/CanonicalFieldName"
+        source_id:
+          $ref: "#/components/schemas/SourceId"
+        source_contract_version:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        observed_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        quality:
+          $ref: "#/components/schemas/EvidenceQuality"
+    TokenUsage:
+      type: object
+      additionalProperties: false
+      required: [input, cached_input, output, reasoning, total]
+      properties:
+        input:
+          $ref: "#/components/schemas/NullableTokenCount"
+        cached_input:
+          $ref: "#/components/schemas/NullableTokenCount"
+        output:
+          $ref: "#/components/schemas/NullableTokenCount"
+        reasoning:
+          $ref: "#/components/schemas/NullableTokenCount"
+        total:
+          $ref: "#/components/schemas/NullableTokenCount"
+          description: >-
+            Derived at query time as input + output only when both operands are
+            known and the safe token bound is not exceeded. It is never persisted.
+    ModelCall:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - event_at
+        - conversation
+        - turn_id
+        - model
+        - reasoning_effort
+        - tokens
+        - source_ids
+        - client
+        - surface
+        - temporal_class
+        - alert_state
+        - alert_count
+        - field_sources
+      properties:
+        id:
+          $ref: "#/components/schemas/OpaqueId"
+        event_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        conversation:
+          oneOf:
+            - $ref: "#/components/schemas/ConversationRef"
+            - type: "null"
+        turn_id:
+          oneOf:
+            - $ref: "#/components/schemas/OpaqueId"
+            - type: "null"
+        model:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 128
+        reasoning_effort:
+          oneOf:
+            - $ref: "#/components/schemas/ReasoningEffort"
+            - type: "null"
+        tokens:
+          $ref: "#/components/schemas/TokenUsage"
+        source_ids:
+          type: array
+          minItems: 1
+          maxItems: 32
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/SourceId"
+        client:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 128
+        surface:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 64
+        temporal_class:
+          $ref: "#/components/schemas/TemporalClass"
+        alert_state:
+          type: string
+          enum: [none, matched]
+        alert_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        field_sources:
+          type: array
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/FieldSource"
+    PageMetadata:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [limit, has_more, next_cursor]
+          properties:
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+            has_more:
+              const: true
+            next_cursor:
+              $ref: "#/components/schemas/PageCursor"
+        - type: object
+          additionalProperties: false
+          required: [limit, has_more, next_cursor]
+          properties:
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+            has_more:
+              const: false
+            next_cursor:
+              type: "null"
+    ModelCallPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/ModelCall"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+
+    Conversation:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - source_id
+        - thread_id
+        - resolved_display_name
+        - first_observed_at
+        - last_observed_at
+        - model_call_count
+        - alert_count
+      properties:
+        id:
+          $ref: "#/components/schemas/OpaqueId"
+        source_id:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 256
+        thread_id:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 256
+        resolved_display_name:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 256
+          description: Ephemeral query-only label; clients must not persist it.
+        first_observed_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        last_observed_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        model_call_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000000000000
+        alert_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000000000000
+    ConversationPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Conversation"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+
+    TokenAggregate:
+      type: object
+      additionalProperties: false
+      required: [value, known_call_count, total_call_count, complete]
+      properties:
+        value:
+          $ref: "#/components/schemas/TokenCount"
+        known_call_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000000000000
+        total_call_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000000000000
+        complete:
+          type: boolean
+          description: True only when every matching call has this token field.
+    ModelCallSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [call_count, alert_count, input, cached_input, output, reasoning, total]
+      properties:
+        call_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000000000000
+        alert_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000000000000
+        input:
+          $ref: "#/components/schemas/TokenAggregate"
+        cached_input:
+          $ref: "#/components/schemas/TokenAggregate"
+        output:
+          $ref: "#/components/schemas/TokenAggregate"
+        reasoning:
+          $ref: "#/components/schemas/TokenAggregate"
+        total:
+          $ref: "#/components/schemas/TokenAggregate"
+          description: Aggregate of query-time input + output derived totals.
+
+    ReceiverState:
+      type: object
+      additionalProperties: false
+      required: [host, port, bind_state, retry_supported]
+      properties:
+        host:
+          type: string
+          const: 127.0.0.1
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        bind_state:
+          $ref: "#/components/schemas/ReceiverBindState"
+        retry_supported:
+          type: boolean
+    SourceHealth:
+      type: object
+      additionalProperties: false
+      required:
+        - source_id
+        - source_contract_version
+        - status
+        - receiver
+        - last_accepted_at
+        - last_error_code
+        - last_error_occurred_at
+        - updated_at
+        - supported_fields
+      properties:
+        source_id:
+          $ref: "#/components/schemas/SourceId"
+        source_contract_version:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        status:
+          $ref: "#/components/schemas/SourceHealthStatus"
+        receiver:
+          oneOf:
+            - $ref: "#/components/schemas/ReceiverState"
+            - type: "null"
+        last_accepted_at:
+          oneOf:
+            - $ref: "#/components/schemas/UtcTimestamp"
+            - type: "null"
+        last_error_code:
+          oneOf:
+            - $ref: "#/components/schemas/SafeSourceErrorCode"
+            - type: "null"
+        last_error_occurred_at:
+          oneOf:
+            - $ref: "#/components/schemas/UtcTimestamp"
+            - type: "null"
+        updated_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        supported_fields:
+          type: array
+          maxItems: 128
+          uniqueItems: true
+          items:
+            type: string
+            pattern: '^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$'
+    SourceList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/SourceHealth"
+
+    AlertEvidence:
+      type: object
+      additionalProperties: false
+      required:
+        - reasoning_output_tokens
+        - pattern_n
+        - event_at
+        - source_id
+        - source_contract_version
+        - observed_at
+        - quality
+      properties:
+        reasoning_output_tokens:
+          $ref: "#/components/schemas/TokenCount"
+        pattern_n:
+          $ref: "#/components/schemas/PositivePatternN"
+        event_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        source_id:
+          $ref: "#/components/schemas/SourceId"
+        source_contract_version:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        observed_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        quality:
+          $ref: "#/components/schemas/EvidenceQuality"
+    AlertAction:
+      type: object
+      additionalProperties: false
+      required:
+        - action_type
+        - state
+        - created_at
+        - not_before
+        - started_at
+        - completed_at
+        - error_code
+        - suppression_reason
+      properties:
+        action_type:
+          type: string
+          const: system_notification
+        state:
+          $ref: "#/components/schemas/ActionState"
+        created_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        not_before:
+          $ref: "#/components/schemas/UtcTimestamp"
+          description: Earliest execution time, including any coalescing window delay.
+        started_at:
+          oneOf:
+            - $ref: "#/components/schemas/UtcTimestamp"
+            - type: "null"
+        completed_at:
+          oneOf:
+            - $ref: "#/components/schemas/UtcTimestamp"
+            - type: "null"
+        error_code:
+          oneOf:
+            - $ref: "#/components/schemas/ActionErrorCode"
+            - type: "null"
+        suppression_reason:
+          oneOf:
+            - $ref: "#/components/schemas/ActionSuppressionReason"
+            - type: "null"
+    Alert:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - model_call_id
+        - conversation_id
+        - rule_id
+        - rule_version
+        - evidence
+        - action
+        - created_at
+      properties:
+        id:
+          $ref: "#/components/schemas/OpaqueId"
+        model_call_id:
+          $ref: "#/components/schemas/OpaqueId"
+        conversation_id:
+          oneOf:
+            - $ref: "#/components/schemas/OpaqueId"
+            - type: "null"
+        rule_id:
+          type: string
+          const: suspected-reasoning-limit-pattern
+        rule_version:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        evidence:
+          $ref: "#/components/schemas/AlertEvidence"
+        action:
+          oneOf:
+            - $ref: "#/components/schemas/AlertAction"
+            - type: "null"
+        created_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+    AlertPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Alert"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+
+    Locale:
+      type: string
+      enum: [en-US, zh-CN]
+    Settings:
+      type: object
+      additionalProperties: false
+      required:
+        - login_autostart
+        - system_notifications
+        - notify_max_n
+        - retention_days
+        - language
+      properties:
+        login_autostart:
+          type: boolean
+        system_notifications:
+          type: boolean
+        notify_max_n:
+          oneOf:
+            - type: integer
+              minimum: 1
+              maximum: 1000
+            - type: "null"
+          description: Null means all positive pattern n values.
+        retention_days:
+          oneOf:
+            - type: integer
+              enum: [30, 90, 365]
+            - type: "null"
+          description: Null means unlimited structured monitoring retention.
+        language:
+          $ref: "#/components/schemas/Locale"
+          description: Resolved and persisted locale after first-launch detection.
+    SettingsDocument:
+      type: object
+      additionalProperties: false
+      required: [revision, settings, applied_at]
+      properties:
+        revision:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        applied_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+
+    ModelCallEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, emitted_at, model_call]
+      properties:
+        event_id:
+          $ref: "#/components/schemas/StreamCursor"
+        emitted_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        model_call:
+          $ref: "#/components/schemas/ModelCall"
+    SourceHealthEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, emitted_at, source]
+      properties:
+        event_id:
+          $ref: "#/components/schemas/StreamCursor"
+        emitted_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        source:
+          $ref: "#/components/schemas/SourceHealth"
+    AlertEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, emitted_at, alert]
+      properties:
+        event_id:
+          $ref: "#/components/schemas/StreamCursor"
+        emitted_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        alert:
+          $ref: "#/components/schemas/Alert"
+    SettingsEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, emitted_at, document]
+      properties:
+        event_id:
+          $ref: "#/components/schemas/StreamCursor"
+        emitted_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        document:
+          $ref: "#/components/schemas/SettingsDocument"
+    StreamControlEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, emitted_at, reason]
+      properties:
+        event_id:
+          $ref: "#/components/schemas/StreamCursor"
+        emitted_at:
+          $ref: "#/components/schemas/UtcTimestamp"
+        reason:
+          type: string
+          enum: [overflow, missed_event, server_restart]

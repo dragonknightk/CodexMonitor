@@ -1,0 +1,82 @@
+[graph]
+targets = [
+  "x86_64-pc-windows-msvc",
+  "x86_64-apple-darwin",
+  "aarch64-apple-darwin",
+  "x86_64-unknown-linux-gnu",
+]
+all-features = true
+
+[advisories]
+yanked = "deny"
+unmaintained = "all"
+unsound = "all"
+unused-ignored-advisory = "deny"
+ignore = [
+  # Tauri 2's Linux GTK3 stack. Remove these as soon as upstream no longer resolves them.
+  { id = "RUSTSEC-2024-0411", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0412", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0413", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0414", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0415", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0416", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0417", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0418", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0419", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0420", reason = "Accepted transitive Tauri 2 GTK3 dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2024-0370", reason = "Accepted transitive GTK3 macro dependency; see docs/development/security-and-privacy-audits.md." },
+
+  # Higher-risk unsound glib iterator implementation in the same Linux-only stack.
+  { id = "RUSTSEC-2024-0429", reason = "Temporarily accepted indirect Tauri 2 Linux GTK3 unsoundness; affected APIs are not called directly; see docs/development/security-and-privacy-audits.md." },
+
+  # tauri-utils -> urlpattern -> rust-unic.
+  { id = "RUSTSEC-2025-0075", reason = "Accepted transitive tauri-utils/urlpattern dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2025-0080", reason = "Accepted transitive tauri-utils/urlpattern dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2025-0081", reason = "Accepted transitive tauri-utils/urlpattern dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2025-0098", reason = "Accepted transitive tauri-utils/urlpattern dependency; see docs/development/security-and-privacy-audits.md." },
+  { id = "RUSTSEC-2025-0100", reason = "Accepted transitive tauri-utils/urlpattern dependency; see docs/development/security-and-privacy-audits.md." },
+]
+
+[licenses]
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "ISC",
+  "MIT",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Zlib",
+]
+confidence-threshold = 0.8
+exceptions = []
+
+[licenses.private]
+ignore = false
+registries = []
+
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+allow = []
+allow-workspace = true
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[sources.allow-org]
+github = []
+gitlab = []
+bitbucket = []

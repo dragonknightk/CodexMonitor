@@ -1,0 +1,188 @@
+{
+  "syntheticTopLevelFuture": "synthetic-future-field.example.invalid",
+  "resourceLogs": [
+    {
+      "syntheticResourceLogsFuture": "synthetic-future-field.example.invalid",
+      "resource": {
+        "syntheticResourceFuture": "synthetic-future-field.example.invalid",
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "synthetic-codex-client"
+            }
+          },
+          {
+            "key": "codex.surface",
+            "value": {
+              "stringValue": "synthetic-ide"
+            }
+          },
+          {
+            "key": "user.email",
+            "value": {
+              "stringValue": "synthetic-user@example.invalid"
+            }
+          },
+          {
+            "key": "account.id",
+            "value": {
+              "stringValue": "synthetic-account-0001"
+            }
+          },
+          {
+            "key": "workspace.path",
+            "value": {
+              "stringValue": "synthetic-workspace-path.example.invalid"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "syntheticScopeLogsFuture": "synthetic-future-field.example.invalid",
+          "scope": {
+            "name": "synthetic-codex-scope"
+          },
+          "logRecords": [
+            {
+              "syntheticLogRecordFuture": "synthetic-future-field.example.invalid",
+              "timeUnixNano": "1767398400000000000",
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "codex.sse_event"
+                  }
+                },
+                {
+                  "key": "event.kind",
+                  "value": {
+                    "stringValue": "response.completed"
+                  }
+                },
+                {
+                  "key": "conversation.id",
+                  "value": {
+                    "stringValue": "synthetic-conversation-unknown-0001"
+                  }
+                },
+                {
+                  "key": "thread.id",
+                  "value": {
+                    "stringValue": "synthetic-thread-unknown-0001"
+                  }
+                },
+                {
+                  "key": "model",
+                  "value": {
+                    "stringValue": "synthetic-model-unknown-v1"
+                  }
+                },
+                {
+                  "key": "model_reasoning_effort",
+                  "value": {
+                    "stringValue": "xhigh"
+                  }
+                },
+                {
+                  "key": "input_token_count",
+                  "value": {
+                    "intValue": "2000"
+                  }
+                },
+                {
+                  "key": "cached_token_count",
+                  "value": {
+                    "intValue": "750"
+                  }
+                },
+                {
+                  "key": "output_token_count",
+                  "value": {
+                    "intValue": "300"
+                  }
+                },
+                {
+                  "key": "reasoning_token_count",
+                  "value": {
+                    "intValue": "517"
+                  }
+                },
+                {
+                  "key": "user.prompt",
+                  "value": {
+                    "stringValue": "synthetic-prompt-marker.example.invalid"
+                  }
+                },
+                {
+                  "key": "response.text",
+                  "value": {
+                    "stringValue": "synthetic-response-marker.example.invalid"
+                  }
+                },
+                {
+                  "key": "tool.arguments",
+                  "value": {
+                    "stringValue": "synthetic-tool-arguments.example.invalid"
+                  }
+                },
+                {
+                  "key": "tool.output",
+                  "value": {
+                    "stringValue": "synthetic-tool-output.example.invalid"
+                  }
+                },
+                {
+                  "key": "reasoning.summary",
+                  "value": {
+                    "stringValue": "synthetic-reasoning-summary.example.invalid"
+                  }
+                },
+                {
+                  "key": "reasoning.encrypted",
+                  "value": {
+                    "stringValue": "synthetic-encrypted-reasoning.example.invalid"
+                  }
+                },
+                {
+                  "key": "command",
+                  "value": {
+                    "stringValue": "synthetic-command.example.invalid"
+                  }
+                },
+                {
+                  "key": "api.key",
+                  "value": {
+                    "stringValue": "synthetic-api-key.example.invalid"
+                  }
+                },
+                {
+                  "key": "cookie",
+                  "value": {
+                    "stringValue": "synthetic-cookie.example.invalid"
+                  }
+                },
+                {
+                  "key": "authorization",
+                  "value": {
+                    "stringValue": "synthetic-auth-token.example.invalid"
+                  }
+                },
+                {
+                  "key": "future.unregistered",
+                  "value": {
+                    "stringValue": "synthetic-future-field.example.invalid"
+                  }
+                }
+              ],
+              "body": {
+                "stringValue": "{\"type\":\"response.completed\",\"prompt\":\"synthetic-prompt-marker.example.invalid\",\"tool\":{\"arguments\":\"synthetic-tool-arguments.example.invalid\",\"output\":\"synthetic-tool-output.example.invalid\"},\"response\":{\"output\":\"synthetic-response-marker.example.invalid\",\"reasoning_summary\":\"synthetic-reasoning-summary.example.invalid\",\"encrypted_reasoning\":\"synthetic-encrypted-reasoning.example.invalid\"}}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

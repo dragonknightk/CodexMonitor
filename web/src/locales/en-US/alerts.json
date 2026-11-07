@@ -1,0 +1,52 @@
+{
+  "heading": "Reasoning alerts",
+  "suspectedPattern": "Suspected reasoning-limit pattern",
+  "matchTitle": "{{tokens}} reasoning tokens · n = {{pattern}}",
+  "state": {
+    "loading": "Loading reasoning alerts",
+    "empty": "No reasoning-pattern alerts have been recorded.",
+    "errorTitle": "Reasoning alerts are unavailable"
+  },
+  "fields": {
+    "ruleVersion": "Rule version",
+    "modelCall": "Model call",
+    "source": "Evidence source",
+    "action": "Notification"
+  },
+  "quality": {
+    "direct": "Direct evidence",
+    "inferred": "Inferred evidence"
+  },
+  "action": {
+    "notRequested": "Not requested",
+    "states": {
+      "pending": "Pending",
+      "started": "Started",
+      "completed": "Completed",
+      "failed": "Failed",
+      "suppressed": "Suppressed",
+      "unavailable": "Unavailable"
+    },
+    "suppression": {
+      "notifications_disabled": "System notifications were disabled.",
+      "above_threshold": "The computed n was above the notification threshold.",
+      "permission_denied": "The operating system denied notification permission.",
+      "coalesced": "This alert was grouped with another notification from the same conversation.",
+      "historical_event": "Historical events cannot request realtime notifications.",
+      "pre_outbox_upgrade": "The alert predates the durable notification Outbox."
+    },
+    "errors": {
+      "invalid_parameters": "The registered notification parameters were invalid.",
+      "permission_denied": "The operating system denied notification permission.",
+      "notification_unavailable": "System notifications are unavailable on this host.",
+      "notification_dispatch_failed": "The host could not dispatch the system notification.",
+      "indeterminate_after_crash": "The process stopped after dispatch began, so delivery cannot be determined safely.",
+      "unknown_action_type": "The stored action type is not registered by this version.",
+      "internal_queue_closed": "The local notification action queue stopped."
+    }
+  },
+  "pagination": {
+    "loadMore": "Load more alerts",
+    "loading": "Loading more…"
+  }
+}

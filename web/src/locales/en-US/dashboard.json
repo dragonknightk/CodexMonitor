@@ -1,0 +1,91 @@
+{
+  "nav": {
+    "label": "Dashboard views",
+    "calls": "Model calls",
+    "alerts": "Reasoning alerts",
+    "sources": "Sources",
+    "settings": "Settings"
+  },
+  "calls": {
+    "heading": "Model calls",
+    "filters": {
+      "label": "Filter model calls",
+      "recentCount": "Recent count",
+      "conversation": "Conversation / thread",
+      "conversationPlaceholder": "ID or local display name",
+      "model": "Model",
+      "modelPlaceholder": "Model identifier",
+      "source": "Source",
+      "sourcePlaceholder": "Source identifier",
+      "from": "From",
+      "to": "To (exclusive)",
+      "alertStatus": "Alert status",
+      "alertOptions": {
+        "any": "Any",
+        "matched": "Matched",
+        "none": "None"
+      },
+      "sort": "Sort",
+      "sortOptions": {
+        "event_at_desc": "Newest first",
+        "event_at_asc": "Oldest first",
+        "input_tokens_desc": "Highest input tokens",
+        "output_tokens_desc": "Highest output tokens",
+        "reasoning_tokens_desc": "Highest reasoning tokens",
+        "total_tokens_desc": "Highest total tokens"
+      },
+      "apply": "Apply filters",
+      "clear": "Clear filters",
+      "errors": {
+        "invalidTimeRange": "The start time must be earlier than the end time."
+      }
+    },
+    "summary": {
+      "label": "Filtered model-call summary",
+      "loading": "Loading filtered summary",
+      "errorTitle": "Summary is unavailable",
+      "calls": "Calls",
+      "alerts": "Alerts",
+      "input": "Input tokens",
+      "cachedInput": "Cached input",
+      "output": "Output tokens",
+      "reasoning": "Reasoning tokens",
+      "total": "Total tokens",
+      "known": "{{known}} of {{total}} calls known"
+    },
+    "pagination": {
+      "label": "Model-call pages",
+      "page": "Page {{page}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "table": {
+      "caption": "Recent model calls",
+      "scrollRegion": "Scrollable model-call table",
+      "columns": {
+        "time": "Time",
+        "conversation": "Conversation / thread",
+        "model": "Model",
+        "effort": "Effort",
+        "input": "Input",
+        "cachedInput": "Cached",
+        "output": "Output",
+        "reasoning": "Reasoning",
+        "total": "Total",
+        "source": "Source",
+        "client": "Client",
+        "alert": "Alert"
+      }
+    },
+    "state": {
+      "loading": "Loading model calls",
+      "emptyTitle": "No model calls yet",
+      "emptyBody": "Completed calls will appear here after local telemetry is accepted.",
+      "errorTitle": "Model calls are unavailable"
+    },
+    "alert": {
+      "none": "None",
+      "matched": "Matched ({{count}})"
+    }
+  }
+}

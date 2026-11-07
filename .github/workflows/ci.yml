@@ -1,0 +1,291 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: 运行完整门禁
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.classify.outputs.rust }}
+      native_host: ${{ steps.classify.outputs.native_host }}
+      web: ${{ steps.classify.outputs.web }}
+      docs: ${{ steps.classify.outputs.docs }}
+      dependency_security: ${{ steps.classify.outputs.dependency_security }}
+      release: ${{ steps.classify.outputs.release }}
+      tooling: ${{ steps.classify.outputs.tooling }}
+      full: ${{ steps.classify.outputs.full }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Classify changed paths
+        id: classify
+        env:
+          FORCE_FULL: ${{ github.event_name != 'pull_request' }}
+        run: >-
+          node scripts/classify-ci-changes.mjs
+          --base "${{ github.event.pull_request.base.sha }}"
+          --head "${{ github.sha }}"
+
+  dashboard-assets:
+    name: Dashboard production assets
+    needs: classify
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.rust == 'true' ||
+      needs.classify.outputs.native_host == 'true' ||
+      needs.classify.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Build Dashboard assets once
+        run: pnpm --dir web build
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+        with:
+          name: dashboard-production-assets
+          path: web/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  rust:
+    name: Rust workspace
+    needs: [classify, dashboard-assets]
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v5
+        with:
+          name: dashboard-production-assets
+          path: web/dist
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+      - name: Install pinned Rust toolchain
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+      - name: Validate crate dependency boundaries
+        run: node scripts/check-crate-boundaries.mjs
+      - name: Lint Rust workspace
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Test Rust workspace once
+        run: cargo test --workspace --lib
+      - name: Test product integration once
+        run: cargo test -p codex-monitor-engine --test product_integration
+
+  native-host:
+    name: Native host (${{ matrix.os }})
+    needs: [classify, dashboard-assets]
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.native_host == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v5
+        with:
+          name: dashboard-production-assets
+          path: web/dist
+      - name: Install pinned Rust toolchain
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      - name: Compile native workspace
+        run: cargo check --workspace
+      - name: Test native desktop host
+        run: cargo test -p codex-monitor-desktop --lib
+
+  frontend:
+    name: Frontend
+    needs: [classify, dashboard-assets]
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v5
+        with:
+          name: dashboard-production-assets
+          path: web/dist
+      - name: Verify generated OpenAPI client
+        run: pnpm check:api
+      - name: Validate localization catalogs and visible text
+        run: pnpm check:localization
+      - run: pnpm lint:web
+      - run: pnpm test:web:unit
+      - name: Run full production Dashboard browser matrix
+        run: pnpm test:web:e2e
+
+  documentation:
+    name: Documentation
+    needs: classify
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Read pull request documentation declaration
+        if: github.event_name == 'pull_request'
+        id: docs-declaration
+        run: node scripts/read-docs-impact.mjs
+      - name: Validate PR documentation once with its base
+        if: github.event_name == 'pull_request'
+        env:
+          DOCS_IMPACT: ${{ steps.docs-declaration.outputs.docs_impact }}
+          DOCS_IMPACT_REASON: ${{ steps.docs-declaration.outputs.docs_impact_reason }}
+        run: node scripts/check-docs.mjs --base "${{ github.event.pull_request.base.sha }}"
+      - name: Validate documentation on push or scheduled full runs
+        if: github.event_name != 'pull_request'
+        run: pnpm docs:check
+      - name: Validate synthetic repository fixtures
+        run: pnpm check:repository-fixtures
+      - name: Reject removed runtime paths
+        run: pnpm check:no-legacy-runtime
+
+  tooling:
+    name: Repository tooling
+    needs: classify
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.tooling == 'true' ||
+      needs.classify.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:tooling
+
+  release-contract:
+    name: Release contract
+    needs: classify
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:release
+
+  security:
+    name: Security and supply chain
+    needs: classify
+    if: >-
+      needs.classify.outputs.full == 'true' ||
+      needs.classify.outputs.dependency_security == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Install pinned Rust toolchain
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      - name: Install pinned Rust audit tools
+        run: |
+          cargo install cargo-deny --version 0.20.2 --locked
+          cargo install cargo-audit --version 0.22.2 --locked
+      - name: Install pinned Gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          curl --fail --location --silent --show-error \
+            --output "$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  ${archive}" | sha256sum --check -
+          tar --extract --gzip --file "$archive" --directory "$RUNNER_TEMP" gitleaks
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/gitleaks" version
+      - name: Run security and supply-chain audit
+        run: pnpm audit:security
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: "8.30.1"

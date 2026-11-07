@@ -1,0 +1,65 @@
+{
+  "heading": "Settings",
+  "state": {
+    "loading": "Loading settings…",
+    "errorTitle": "Settings are unavailable"
+  },
+  "form": {
+    "label": "CodexMonitor settings"
+  },
+  "fields": {
+    "autostart": {
+      "label": "Start at login"
+    },
+    "notifications": {
+      "label": "System notifications"
+    },
+    "threshold": {
+      "label": "Reasoning notification threshold",
+      "modeLabel": "Threshold mode",
+      "valueLabel": "Maximum n",
+      "modes": {
+        "bounded": "At or below a maximum n",
+        "all": "Any positive n"
+      }
+    },
+    "retention": {
+      "label": "Structured history retention",
+      "options": {
+        "days30": "30 days",
+        "days90": "90 days",
+        "days365": "365 days",
+        "unlimited": "Unlimited"
+      }
+    },
+    "language": {
+      "label": "Language",
+      "options": {
+        "enUS": "English",
+        "zhCN": "简体中文"
+      }
+    }
+  },
+  "actions": {
+    "save": "Save settings",
+    "saving": "Saving…",
+    "reset": "Reset changes",
+    "reload": "Reload settings"
+  },
+  "messages": {
+    "saved": "Settings saved and applied.",
+    "conflictTitle": "A newer settings revision is available",
+    "saveErrorTitle": "Settings were not saved"
+  },
+  "validation": {
+    "required": "Enter a value.",
+    "invalidFormat": "Enter a whole number.",
+    "invalid": "Enter a valid value.",
+    "unsupported": "Select a supported value.",
+    "inconsistent": "This value conflicts with another setting.",
+    "outOfRange": "Enter a value in the supported range.",
+    "minimum": "Enter {{minimum}} or greater.",
+    "maximum": "Enter {{maximum}} or less.",
+    "range": "Enter a value from {{minimum}} to {{maximum}}."
+  }
+}

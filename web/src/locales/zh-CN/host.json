@@ -1,0 +1,33 @@
+{
+  "tray": {
+    "tooltip": "CodexMonitor — {{status}}",
+    "status": {
+      "starting": "正在启动监控",
+      "healthy": "监控正常",
+      "degraded": "监控异常",
+      "receiverUnavailable": "OTLP 接收器不可用",
+      "receiverPortConflict": "OTLP 接收端口被占用",
+      "notificationPermissionRequired": "需要授予通知权限",
+      "notificationUnavailable": "系统通知不可用",
+      "stopped": "监控已停止"
+    },
+    "menu": {
+      "status": "状态：{{status}}",
+      "openDashboard": "打开 Dashboard",
+      "startAtLogin": "登录时启动",
+      "reasoningNotifications": "推理通知",
+      "settings": "设置",
+      "quit": "退出 CodexMonitor"
+    }
+  },
+  "notification": {
+    "reasoningPattern": {
+      "title": "疑似推理上限模式",
+      "body": "{{model}} 产生了 {{reasoningTokens}} 个推理 token（n = {{patternN}}）。建议检查或重新生成回答。",
+      "bodyWithoutModel": "一次模型调用产生了 {{reasoningTokens}} 个推理 token（n = {{patternN}}）。建议检查或重新生成回答。",
+      "coalescedTitle": "多个疑似推理上限模式",
+      "coalescedBody": "检测到多个疑似模式。其中一次 {{model}} 调用产生了 {{reasoningTokens}} 个推理 token（n = {{patternN}}）。建议检查或重新生成这些回答。",
+      "coalescedBodyWithoutModel": "检测到多个疑似模式。其中一次模型调用产生了 {{reasoningTokens}} 个推理 token（n = {{patternN}}）。建议检查或重新生成这些回答。"
+    }
+  }
+}

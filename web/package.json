@@ -1,0 +1,52 @@
+{
+  "name": "@codex-monitor/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": "11.13.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --max-warnings=0",
+    "test:unit": "vitest run",
+    "test:e2e": "pnpm test:e2e:production",
+    "test:e2e:smoke": "playwright test --project=desktop-en-US --grep \"exposes an accessible\"",
+    "test:e2e:responsive": "playwright test --project=desktop-en-US --project=mobile-en-US",
+    "test:e2e:locales": "playwright test --project=desktop-en-US --project=desktop-zh-CN",
+    "test:e2e:production": "playwright test",
+    "generate:api": "openapi-typescript ../api/openapi.yaml -o src/api/schema.d.ts",
+    "check:api": "node ../scripts/check-generated-api.mjs"
+  },
+  "dependencies": {
+    "i18next": "26.3.6",
+    "openapi-fetch": "0.17.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-i18next": "17.0.9"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.61.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "eslint": "10.7.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.3",
+    "jsdom": "29.1.1",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.64.0",
+    "vite": "8.1.4",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,30 @@
+[package]
+name = "codex-monitor-engine"
+description = "Composition root, settings coordination and durable workers for CodexMonitor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+test-support = []
+
+[dependencies]
+codex-monitor-core.workspace = true
+codex-monitor-dashboard.workspace = true
+codex-monitor-storage.workspace = true
+codex-monitor-telemetry.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+codex-monitor-host.workspace = true
+opentelemetry-proto.workspace = true
+rusqlite.workspace = true
+serde_json.workspace = true
+tempfile = "=3.27.0"
+uuid.workspace = true
+
+[lints]
+workspace = true

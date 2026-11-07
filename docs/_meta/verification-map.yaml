@@ -1,0 +1,467 @@
+version: 1
+
+stages:
+  - id: checks
+    label: 快速检查
+  - id: lint
+    label: 静态分析
+  - id: tests
+    label: 单元与工具测试
+  - id: product
+    label: 产品集成与构建
+  - id: browser
+    label: 浏览器矩阵
+
+checks:
+  - id: format-check
+    stage: checks
+    command: pnpm format:check
+  - id: crate-boundaries
+    stage: checks
+    command: pnpm check:crate-boundaries
+  - id: workspace-check
+    stage: checks
+    command: cargo check --workspace
+    covers:
+      - core-check
+      - storage-check
+      - telemetry-check
+      - dashboard-check
+      - engine-check
+      - host-check
+      - desktop-check
+  - id: core-check
+    stage: checks
+    command: cargo check -p codex-monitor-core
+  - id: storage-check
+    stage: checks
+    command: cargo check -p codex-monitor-storage
+  - id: telemetry-check
+    stage: checks
+    command: cargo check -p codex-monitor-telemetry
+  - id: dashboard-check
+    stage: checks
+    command: cargo check -p codex-monitor-dashboard
+  - id: engine-check
+    stage: checks
+    command: cargo check -p codex-monitor-engine
+  - id: host-check
+    stage: checks
+    command: cargo check -p codex-monitor-host
+  - id: desktop-check
+    stage: checks
+    command: cargo check -p codex-monitor-desktop
+  - id: api-check
+    stage: checks
+    command: pnpm check:api
+  - id: localization-check
+    stage: checks
+    command: pnpm check:localization
+  - id: privacy-check
+    stage: checks
+    command: pnpm check:privacy
+  - id: fixture-check
+    stage: checks
+    command: pnpm check:repository-fixtures:worktree
+  - id: legacy-runtime-check
+    stage: checks
+    command: pnpm check:no-legacy-runtime
+  - id: docs-check
+    stage: checks
+    command: pnpm docs:check
+  - id: database-schema-check
+    stage: checks
+    command: node scripts/generate-database-schema.mjs --check
+  - id: reference-check
+    stage: checks
+    command: node scripts/generate-references.mjs --check
+  - id: telemetry-field-check
+    stage: checks
+    command: node scripts/generate-telemetry-fields.mjs --check --persistence-manifest crates/codex-monitor-core/telemetry-persistence-fields.yaml
+  - id: rust-lint
+    stage: lint
+    command: pnpm lint:rust
+  - id: web-lint
+    stage: lint
+    command: pnpm lint:web
+  - id: test-rust
+    stage: tests
+    command: pnpm test:rust
+    covers:
+      - core-test
+      - storage-test
+      - telemetry-test
+      - dashboard-test
+      - engine-test
+      - host-test
+      - desktop-test
+  - id: core-test
+    stage: tests
+    command: cargo test -p codex-monitor-core --lib
+  - id: storage-test
+    stage: tests
+    command: cargo test -p codex-monitor-storage --lib
+  - id: telemetry-test
+    stage: tests
+    command: cargo test -p codex-monitor-telemetry --lib
+  - id: dashboard-test
+    stage: tests
+    command: cargo test -p codex-monitor-dashboard --lib
+  - id: engine-test
+    stage: tests
+    command: cargo test -p codex-monitor-engine --lib
+  - id: host-test
+    stage: tests
+    command: cargo test -p codex-monitor-host --lib
+  - id: desktop-test
+    stage: tests
+    command: cargo test -p codex-monitor-desktop --lib
+  - id: tooling-test
+    stage: tests
+    command: pnpm test:tooling
+  - id: release-test
+    stage: tests
+    command: pnpm test:release
+  - id: web-unit
+    stage: tests
+    command: pnpm test:web:unit
+  - id: product-integration
+    stage: product
+    command: pnpm test:product-integration
+  - id: dashboard-build
+    stage: product
+    command: pnpm --dir web build
+  - id: app-build
+    stage: product
+    command: pnpm build:app
+    covers:
+      - dashboard-build
+  - id: browser-smoke
+    stage: browser
+    command: pnpm --dir web test:e2e:smoke
+  - id: browser-responsive
+    stage: browser
+    command: pnpm --dir web test:e2e:responsive
+  - id: browser-locales
+    stage: browser
+    command: pnpm --dir web test:e2e:locales
+  - id: browser-full
+    stage: browser
+    command: pnpm test:web:e2e
+    covers:
+      - browser-smoke
+      - browser-responsive
+      - browser-locales
+
+full_checks:
+  - format-check
+  - crate-boundaries
+  - api-check
+  - localization-check
+  - privacy-check
+  - fixture-check
+  - legacy-runtime-check
+  - docs-check
+  - rust-lint
+  - web-lint
+  - test-rust
+  - tooling-test
+  - release-test
+  - web-unit
+  - product-integration
+  - app-build
+  - browser-full
+
+mappings:
+  - id: core-domain
+    globs:
+      - crates/codex-monitor-core/**
+    checks:
+      - core-check
+      - core-test
+      - crate-boundaries
+    reason: core 领域契约或字段持久化边界发生变化
+    upgrade:
+      condition: core 是所有 Rust adapter 的公共契约
+      checks:
+        - workspace-check
+        - test-rust
+
+  - id: storage-adapter
+    globs:
+      - crates/codex-monitor-storage/**
+    checks:
+      - storage-check
+      - storage-test
+      - crate-boundaries
+    reason: SQLite adapter 或持久工作队列发生变化
+
+  - id: storage-migrations
+    globs:
+      - crates/codex-monitor-storage/migrations/**
+    checks:
+      - database-schema-check
+      - privacy-check
+      - docs-check
+    reason: migration authority 必须同步 schema、隐私面与文档证据
+    upgrade:
+      condition: migration 会改变完整产品启动时的数据库打开路径
+      checks:
+        - product-integration
+
+  - id: telemetry-adapter
+    globs:
+      - crates/codex-monitor-telemetry/**
+    checks:
+      - telemetry-check
+      - telemetry-test
+      - crate-boundaries
+      - privacy-check
+    reason: OTLP 解码、接收器或来源解析发生变化
+
+  - id: dashboard-adapter
+    globs:
+      - crates/codex-monitor-dashboard/**
+    checks:
+      - dashboard-check
+      - dashboard-test
+      - crate-boundaries
+    reason: Dashboard HTTP、REST/SSE、会话或安全边界发生变化
+    upgrade:
+      condition: Dashboard 共享路由或安全契约需要产品组合证据
+      checks:
+        - product-integration
+
+  - id: engine-composition
+    globs:
+      - crates/codex-monitor-engine/**
+    checks:
+      - engine-check
+      - engine-test
+      - crate-boundaries
+      - product-integration
+    reason: engine worker、bridge 或组合根发生变化
+
+  - id: host-coordination
+    globs:
+      - crates/codex-monitor-host/**
+    checks:
+      - host-check
+      - host-test
+      - crate-boundaries
+      - product-integration
+    reason: 无 Tauri 宿主协调或生命周期发生变化
+
+  - id: native-desktop
+    globs:
+      - apps/desktop/**
+    checks:
+      - desktop-check
+      - desktop-test
+      - crate-boundaries
+      - product-integration
+      - app-build
+    reason: Tauri host 或操作系统效果发生变化
+    upgrade:
+      condition: native host 修改在 CI 升级为三平台矩阵
+      checks:
+        - test-rust
+
+  - id: workspace-toolchain
+    globs:
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - rustfmt.toml
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .npmrc
+    checks:
+      - workspace-check
+      - crate-boundaries
+      - tooling-test
+    reason: workspace、依赖锁或工具链会影响多个验证闭包
+    upgrade:
+      condition: 公共构建输入变化需要完整 Rust 与产品构建
+      checks:
+        - rust-lint
+        - test-rust
+        - app-build
+
+  - id: openapi-contract
+    globs:
+      - api/**
+      - web/src/api/**
+    checks:
+      - api-check
+      - web-unit
+      - dashboard-test
+    reason: OpenAPI authority 或生成客户端发生变化
+    upgrade:
+      condition: 公共 API 契约影响所有浏览器项目
+      checks:
+        - browser-full
+
+  - id: web-frontend
+    globs:
+      - web/**
+    checks:
+      - localization-check
+      - web-lint
+      - web-unit
+      - dashboard-build
+      - browser-smoke
+    reason: Dashboard 前端实现或测试发生变化
+
+  - id: web-shared-contracts
+    globs:
+      - web/src/App.tsx
+      - web/src/AppSynchronization.tsx
+      - web/src/api/**
+      - web/src/features/api.ts
+      - web/src/features/events/**
+      - web/src/**/*.css
+      - web/tests/e2e/**
+      - web/playwright.config.ts
+    checks: []
+    reason: 公共路由、会话、安全、同步或共享布局发生变化
+    upgrade:
+      condition: 共享浏览器契约必须覆盖桌面/移动与中英文
+      checks:
+        - browser-full
+
+  - id: web-locales
+    globs:
+      - web/src/i18n.ts
+      - web/src/locales/**
+      - web/src/localization.test.ts
+    checks:
+      - localization-check
+    reason: 本地化目录或语言选择发生变化
+    upgrade:
+      condition: 可见语言变化至少覆盖中英文项目
+      checks:
+        - browser-locales
+
+  - id: documentation
+    globs:
+      - docs/**
+      - README.md
+      - README.en.md
+      - README.zh-CN.md
+      - PRIVACY.md
+      - PRIVACY.zh-CN.md
+      - .github/PULL_REQUEST_TEMPLATE.md
+      - LICENSE
+    checks:
+      - docs-check
+    reason: 受管文档、权威关系或导航发生变化
+
+  - id: documentation-tooling
+    globs:
+      - docs/_meta/**
+      - scripts/check-docs.mjs
+      - scripts/generate-*.mjs
+      - scripts/read-docs-impact.mjs
+      - scripts/tests/documentation-governance.test.mjs
+      - scripts/tests/database-schema-generation.test.mjs
+      - scripts/tests/telemetry-fields.test.mjs
+    checks:
+      - tooling-test
+      - docs-check
+    reason: 文档 authority、生成器或治理实现发生变化
+
+  - id: telemetry-field-authority
+    globs:
+      - docs/_meta/telemetry-fields.yaml
+      - crates/codex-monitor-core/telemetry-persistence-fields.yaml
+    checks:
+      - telemetry-field-check
+      - core-test
+      - privacy-check
+      - docs-check
+    reason: telemetry 字段目录和持久化 manifest 必须一致
+    upgrade:
+      condition: 公共字段契约变化需要完整 Rust 验证
+      checks:
+        - test-rust
+
+  - id: telemetry-source-authority
+    globs:
+      - docs/_meta/telemetry-sources.yaml
+    checks:
+      - reference-check
+      - telemetry-test
+      - docs-check
+    reason: telemetry 来源目录发生变化
+
+  - id: fixture-contracts
+    globs:
+      - fixtures/**
+      - contracts/**
+    checks:
+      - fixture-check
+      - privacy-check
+      - telemetry-test
+      - docs-check
+    reason: synthetic fixture 或 legacy contract 发生变化
+
+  - id: repository-tooling
+    globs:
+      - scripts/check-*.mjs
+      - scripts/classify-ci-changes.mjs
+      - scripts/generate-*.mjs
+      - scripts/read-docs-impact.mjs
+      - scripts/verify-changed.mjs
+      - scripts/tests/**
+    checks:
+      - tooling-test
+    reason: 仓库检查器、生成器或发布工具发生变化
+
+  - id: release-tooling
+    globs:
+      - scripts/release/**
+      - scripts/installed-artifact-smoke.mjs
+    checks:
+      - release-test
+    reason: 发布打包、签名或产物合同发生变化
+
+  - id: ci-workflows
+    globs:
+      - .github/workflows/**
+    checks:
+      - tooling-test
+      - docs-check
+    reason: CI 或发布门禁发生变化
+
+  - id: security-surface
+    globs:
+      - .gitleaks.toml
+      - deny.toml
+      - docs/_meta/privacy-surfaces.yaml
+      - scripts/check-frontend-licenses.mjs
+      - scripts/check-privacy-surfaces.mjs
+    checks:
+      - privacy-check
+      - tooling-test
+      - docs-check
+    reason: 安全、依赖许可或隐私 surface 配置发生变化
+
+  - id: application-assets
+    globs:
+      - assets/**
+    checks:
+      - app-build
+    reason: 应用图标或打包资产发生变化
+
+  - id: repository-format-config
+    globs:
+      - .editorconfig
+      - .gitattributes
+      - .gitignore
+      - .prettierignore
+    checks:
+      - format-check
+      - tooling-test
+    reason: 仓库格式或候选文件规则发生变化

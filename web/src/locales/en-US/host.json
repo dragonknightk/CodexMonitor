@@ -1,0 +1,33 @@
+{
+  "tray": {
+    "tooltip": "CodexMonitor — {{status}}",
+    "status": {
+      "starting": "Starting monitoring",
+      "healthy": "Monitoring normally",
+      "degraded": "Monitoring degraded",
+      "receiverUnavailable": "OTLP receiver unavailable",
+      "receiverPortConflict": "OTLP receiver port in use",
+      "notificationPermissionRequired": "Notification permission required",
+      "notificationUnavailable": "System notifications unavailable",
+      "stopped": "Monitoring stopped"
+    },
+    "menu": {
+      "status": "Status: {{status}}",
+      "openDashboard": "Open Dashboard",
+      "startAtLogin": "Start at login",
+      "reasoningNotifications": "Reasoning notifications",
+      "settings": "Settings",
+      "quit": "Quit CodexMonitor"
+    }
+  },
+  "notification": {
+    "reasoningPattern": {
+      "title": "Suspected reasoning-limit pattern",
+      "body": "{{model}} produced {{reasoningTokens}} reasoning tokens (n = {{patternN}}). Review or regenerate the response.",
+      "bodyWithoutModel": "A model call produced {{reasoningTokens}} reasoning tokens (n = {{patternN}}). Review or regenerate the response.",
+      "coalescedTitle": "Suspected reasoning-limit patterns",
+      "coalescedBody": "Multiple suspected patterns were detected. One {{model}} call produced {{reasoningTokens}} reasoning tokens (n = {{patternN}}). Review or regenerate the responses.",
+      "coalescedBodyWithoutModel": "Multiple suspected patterns were detected. One model call produced {{reasoningTokens}} reasoning tokens (n = {{patternN}}). Review or regenerate the responses."
+    }
+  }
+}

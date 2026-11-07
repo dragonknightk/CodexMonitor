@@ -1,0 +1,20 @@
+{
+  "api": {
+    "bootstrap_invalid": "Dashboard 链接无效或已过期。",
+    "unauthorized": "当前 Dashboard 会话已失效。",
+    "forbidden_host": "请求未发送到当前本机 Dashboard。",
+    "forbidden_origin": "请求并非来自当前本机 Dashboard。",
+    "csrf_invalid": "本机会话凭证缺失或已过期。",
+    "validation_failed": "一个或多个请求值无效。",
+    "invalid_cursor": "请求的分页位置已失效。",
+    "invalid_time_range": "选择的时间范围无效。",
+    "source_not_found": "遥测来源已不再注册。",
+    "source_retry_unavailable": "当前状态下无法重试该遥测来源。",
+    "revision_conflict": "设置已在其他位置更新，请重新加载后再保存。",
+    "precondition_required": "保存前请重新加载设置。",
+    "unsupported_media_type": "不支持该请求格式。",
+    "payload_too_large": "请求内容过大。",
+    "storage_unavailable": "本机监控存储暂时不可用。",
+    "internal_unavailable": "本机监控服务暂时不可用。"
+  }
+}

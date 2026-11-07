@@ -1,0 +1,20 @@
+{
+  "api": {
+    "bootstrap_invalid": "The Dashboard link is invalid or has expired.",
+    "unauthorized": "This Dashboard session is no longer authorized.",
+    "forbidden_host": "The request did not target the active local Dashboard.",
+    "forbidden_origin": "The request did not come from the active local Dashboard.",
+    "csrf_invalid": "The local session proof is missing or expired.",
+    "validation_failed": "One or more request values are invalid.",
+    "invalid_cursor": "The requested page is no longer available.",
+    "invalid_time_range": "The selected time range is invalid.",
+    "source_not_found": "The telemetry source is no longer registered.",
+    "source_retry_unavailable": "The telemetry source cannot be retried in its current state.",
+    "revision_conflict": "Settings changed elsewhere. Reload them before saving again.",
+    "precondition_required": "Reload settings before saving changes.",
+    "unsupported_media_type": "The request format is not supported.",
+    "payload_too_large": "The request is too large.",
+    "storage_unavailable": "Local monitoring storage is temporarily unavailable.",
+    "internal_unavailable": "The local monitoring service is temporarily unavailable."
+  }
+}
